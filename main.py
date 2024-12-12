@@ -13,7 +13,7 @@ output_details = interpreter.get_output_details()
 # Function to preprocess frame for the model
 def preprocess_frame(frame, input_shape):
     resized_frame = cv2.resize(frame, (input_shape[1], input_shape[2]))
-    normalized_frame = resized_frame / 255.0  # Normalize to [0, 1]
+    normalized_frame = resized_frame / 255.0
     return np.expand_dims(normalized_frame, axis=0).astype(np.float32)
 
 # Function to postprocess model output
@@ -23,7 +23,7 @@ def postprocess_output(frame, output):
     overlay = cv2.addWeighted(frame, 0.7, cv2.applyColorMap(colored_segmentation, cv2.COLORMAP_JET), 0.3, 0)
     return overlay
 
-# Open video capture (can be a file path or a camera index)
+# Open video capture
 video_path = "333 VID_20231011_170120.mp4"  # Replace with 0 for webcam
 cap = cv2.VideoCapture(video_path)
 
@@ -33,31 +33,25 @@ if not cap.isOpened():
 
 input_shape = input_details[0]['shape']
 
+# Video writer for saving output
+output_video = cv2.VideoWriter(
+    'output.avi', 
+    cv2.VideoWriter_fourcc(*'XVID'), 
+    30, 
+    (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+)
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    # Preprocess frame
     preprocessed_frame = preprocess_frame(frame, input_shape)
-
-    # Set the input tensor
     interpreter.set_tensor(input_details[0]['index'], preprocessed_frame)
-
-    # Run inference
     interpreter.invoke()
-
-    # Get output tensor
     output_data = interpreter.get_tensor(output_details[0]['index'])
-
-    # Postprocess and display the output
     output_frame = postprocess_output(frame, output_data)
-    cv2.imshow("YOLO Segmentation", output_frame)
+    output_video.write(output_frame)
 
-    # Break on 'q' key press
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Release resources
 cap.release()
-cv2.destroyAllWindows()
+output_video.release()
