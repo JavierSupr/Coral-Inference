@@ -1,11 +1,9 @@
 import cv2
 import numpy as np
 import tensorflow.lite as tflite
-from tflite_runtime.interpreter import Interpreter, load_delegate
-
 
 # Load YOLO segmentation TFLite model
-interpreter = tflite.Interpreter(model_path="best_float16.tflite", experimental_delegates=[load_delegate('libedgetpu.so.1')])
+interpreter = tflite.Interpreter(model_path="best_float16.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output details
@@ -19,19 +17,6 @@ def preprocess_frame(frame, input_shape):
     normalized_frame = resized_frame / 255.0  # Normalize to [0, 1]
     # Add a batch dimension and convert to the required dtype
     return np.expand_dims(normalized_frame, axis=0).astype(input_details[0]['dtype'])
-
-# Function to postprocess model output
-def postprocess_output(frame, output):
-    # Get the segmentation map
-    segmentation_map = output[0]  # Assuming single output tensor
-    segmentation_map_resized = cv2.resize(segmentation_map, (frame.shape[1], frame.shape[0]))
-    # Normalize and convert to an 8-bit image for visualization
-    colored_segmentation = (segmentation_map_resized * 255).astype(np.uint8)
-    # Apply a color map to the segmentation map
-    colored_segmentation = cv2.applyColorMap(colored_segmentation, cv2.COLORMAP_JET)
-    # Overlay the segmentation map onto the original frame
-    overlay = cv2.addWeighted(frame, 0.7, colored_segmentation, 0.3, 0)
-    return overlay
 
 # Open video capture (can be a file path or a camera index)
 video_path = "333 VID_20231011_170120.mp4"  # Replace with 0 for webcam
@@ -49,10 +34,13 @@ if len(input_shape) != 4 or input_shape[0] != 1:
     print("Error: Model input shape must be [1, height, width, channels].")
     exit()
 
+frame_count = 0
 while True:
     ret, frame = cap.read()
     if not ret:
         break
+
+    frame_count += 1
 
     # Preprocess frame
     preprocessed_frame = preprocess_frame(frame, input_shape)
@@ -66,14 +54,14 @@ while True:
     # Get output tensor
     output_data = interpreter.get_tensor(output_details[0]['index'])
 
-    # Postprocess and display the output
-    output_frame = postprocess_output(frame, output_data)
-    cv2.imshow("YOLO Segmentation", output_frame)
+    # Display inference result on CLI
+    print(f"Frame {frame_count}:")
+    print(output_data)
 
-    # Break on 'q' key press
+    # Break on 'q' key press (optional, for interrupting long processing)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 # Release resources
 cap.release()
-cv2.destroyAllWindows()
+print("Inference completed.")
