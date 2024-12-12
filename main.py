@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 import tensorflow.lite as tflite
+from tflite_runtime.interpreter import Interpreter, load_delegate
+
 
 # Load YOLO segmentation TFLite model
-interpreter = tflite.Interpreter(model_path="best_float16.tflite")
+interpreter = tflite.Interpreter(model_path="best_float16.tflite", experimental_delegates=[load_delegate('libedgetpu.so.1')])
 interpreter.allocate_tensors()
 
 # Get input and output details
