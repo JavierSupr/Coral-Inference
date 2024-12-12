@@ -1,18 +1,18 @@
-from ultralytics import YOLO
-import cv2
+import tflite_runtime.interpreter as tflite
 import numpy as np
+import cv2
 
-# Load the YOLOv8 model for segmentation
-model = YOLO('best.pt')  # Replace with the appropriate model file
+# Load TFLite model and allocate tensors
+interpreter = tflite.Interpreter(model_path="best_float16.tflite")
+interpreter.allocate_tensors()
 
-# Load a video to segment
-video_path = '111 VID_20231011_170829.mp4'  # Replace with your video path
+# Get input and output details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# Video input (bisa dari file atau kamera)
+video_path = "333 VID_20231011_170120.mp4"  # Path ke video, atau gunakan 0 untuk kamera
 cap = cv2.VideoCapture(video_path)
-
-# Check if the video is loaded successfully
-if not cap.isOpened():
-    print("Error: Cannot open video")
-    exit()
 
 # Process video frame by frame
 while cap.isOpened():
@@ -20,24 +20,38 @@ while cap.isOpened():
     if not ret:
         break
 
-    # Convert frame to format supported by Coral TPU (if needed)
-    input_frame = cv2.resize(frame, (300, 300))  # Resize to match TPU requirements
-    input_frame = cv2.cvtColor(input_frame, cv2.COLOR_BGR2RGB)
-    input_tensor = np.expand_dims(input_frame, axis=0).astype(np.uint8)  # Convert to tensor
+    # Preprocess frame
+    input_shape = input_details[0]['shape']
+    resized_frame = cv2.resize(frame, (input_shape[1], input_shape[2]))
+    input_data = np.expand_dims(resized_frame, axis=0).astype(np.uint8)  # Sesuaikan tipe jika perlu
+    input_data = input_data / 255.0  # Normalisasi
 
-    # Perform segmentation using Coral TPU
-    results = model.predict(input_tensor, task='segment')
+    # Perform inference
+    interpreter.set_tensor(input_details[0]['index'], input_data.astype(np.float32))
+    interpreter.invoke()
 
-    # Visualize the segmentation result
-    segmented_frame = results[0].plot()  # Plot segmentation results
+    # Get results
+    output_data = interpreter.get_tensor(output_details[0]['index'])
 
-    # Display the segmented frame
-    cv2.imshow('YOLOv8 Segmentation on Coral TPU', segmented_frame)
+    # Post-process detection results
+    for detection in output_data:
+        confidence = detection[1]  # Confidence score
+        if confidence > 0.5:  # Threshold deteksi
+            bbox = detection[2:6]  # Bounding box: xmin, ymin, xmax, ymax
+            xmin, ymin, xmax, ymax = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+            
+            # Gambarkan bounding box dan label
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)  # Kotak hijau
+            label = f"Confidence: {confidence:.2f}"
+            cv2.putText(frame, label, (xmin, ymin - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-    # Press 'q' to quit
+    # Tampilkan frame dengan deteksi
+    cv2.imshow("Deteksi YOLO", frame)
+
+    # Tekan 'q' untuk keluar
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Release the video capture and close windows
+# Release resources
 cap.release()
 cv2.destroyAllWindows()
