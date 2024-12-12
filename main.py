@@ -12,15 +12,23 @@ output_details = interpreter.get_output_details()
 
 # Function to preprocess frame for the model
 def preprocess_frame(frame, input_shape):
+    # Resize frame to the input size required by the model
     resized_frame = cv2.resize(frame, (input_shape[1], input_shape[2]))
     normalized_frame = resized_frame / 255.0  # Normalize to [0, 1]
-    return np.expand_dims(normalized_frame, axis=0).astype(np.float32)
+    # Add a batch dimension and convert to the required dtype
+    return np.expand_dims(normalized_frame, axis=0).astype(input_details[0]['dtype'])
 
 # Function to postprocess model output
 def postprocess_output(frame, output):
-    segmentation_map = cv2.resize(output[0], (frame.shape[1], frame.shape[0]))
-    colored_segmentation = (segmentation_map * 255).astype(np.uint8)
-    overlay = cv2.addWeighted(frame, 0.7, cv2.applyColorMap(colored_segmentation, cv2.COLORMAP_JET), 0.3, 0)
+    # Get the segmentation map
+    segmentation_map = output[0]  # Assuming single output tensor
+    segmentation_map_resized = cv2.resize(segmentation_map, (frame.shape[1], frame.shape[0]))
+    # Normalize and convert to an 8-bit image for visualization
+    colored_segmentation = (segmentation_map_resized * 255).astype(np.uint8)
+    # Apply a color map to the segmentation map
+    colored_segmentation = cv2.applyColorMap(colored_segmentation, cv2.COLORMAP_JET)
+    # Overlay the segmentation map onto the original frame
+    overlay = cv2.addWeighted(frame, 0.7, colored_segmentation, 0.3, 0)
     return overlay
 
 # Open video capture (can be a file path or a camera index)
@@ -31,7 +39,13 @@ if not cap.isOpened():
     print("Error: Unable to open video file or webcam.")
     exit()
 
+# Retrieve input shape from the model
 input_shape = input_details[0]['shape']
+
+# Ensure input shape has the correct number of dimensions
+if len(input_shape) != 4 or input_shape[0] != 1:
+    print("Error: Model input shape must be [1, height, width, channels].")
+    exit()
 
 while True:
     ret, frame = cap.read()
