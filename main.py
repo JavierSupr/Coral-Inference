@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow.lite as tflite
+import time
 
 # Load YOLO segmentation TFLite model
 interpreter = tflite.Interpreter(model_path="best_float16.tflite")
@@ -35,12 +36,15 @@ if len(input_shape) != 4 or input_shape[0] != 1:
     exit()
 
 frame_count = 0
+total_time = 0
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
     frame_count += 1
+    start_time = time.time()
 
     # Preprocess frame
     preprocessed_frame = preprocess_frame(frame, input_shape)
@@ -54,9 +58,15 @@ while True:
     # Get output tensor
     output_data = interpreter.get_tensor(output_details[0]['index'])
 
-    # Display inference result on CLI
+    # Calculate FPS
+    inference_time = time.time() - start_time
+    total_time += inference_time
+    fps = 1 / inference_time if inference_time > 0 else 0
+
+    # Display inference result and FPS on CLI
     print(f"Frame {frame_count}:")
-    print(output_data)
+    print(f"Output: {output_data.shape} (summary: mean={np.mean(output_data):.4f})")
+    print(f"Inference Time: {inference_time:.4f}s, FPS: {fps:.2f}")
 
     # Break on 'q' key press (optional, for interrupting long processing)
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -64,4 +74,10 @@ while True:
 
 # Release resources
 cap.release()
-print("Inference completed.")
+
+# Display overall FPS
+if frame_count > 0:
+    avg_fps = frame_count / total_time
+    print(f"Processed {frame_count} frames in {total_time:.2f}s. Average FPS: {avg_fps:.2f}")
+else:
+    print("No frames were processed.")
