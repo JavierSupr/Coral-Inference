@@ -21,7 +21,7 @@ class YOLODetector:
 
         self.confidence_threshold = confidence_threshold
 
-    def preprocess_frame(self, frame, input_shape=(416, 416)):
+    def preprocess_frame(self, frame, input_shape=(640, 640)):
         # Resize and normalize frame
         resized = cv2.resize(frame, input_shape)
         normalized = resized.astype(np.float32) / 255.0
