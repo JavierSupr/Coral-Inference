@@ -7,7 +7,8 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 edgetpu_delegate = load_delegate('libedgetpu.so.1')
 
 # Load YOLO segmentation TFLite model
-interpreter = Interpreter(model_path="best_full_integer_quant_edgetpu.tflite", experimental_delegates=[edgetpu_delegate])
+#interpreter = Interpreter(model_path="best_full_integer_quant_edgetpu.tflite", experimental_delegates=[edgetpu_delegate])
+interpreter = Interpreter(model_path="best_float16.tflite", experimental_delegates=[edgetpu_delegate])
 interpreter.allocate_tensors()
 
 # Get input and output details
