@@ -73,8 +73,8 @@ while True:
     print(f"Inference Time: {inference_time:.4f}s, FPS: {fps:.2f}")
 
     # Break on 'q' key press (optional, for interrupting long processing)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    #if cv2.waitKey(1) & 0xFF == ord('q'):
+    #    break
 
 # Release resources
 cap.release()
