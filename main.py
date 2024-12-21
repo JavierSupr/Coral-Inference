@@ -33,13 +33,16 @@ def postprocess_output(output_data, threshold=0.5):
     """
     boxes = output_data[0]  # Bounding boxes, confidences, and class indices
     for box in boxes:
-        confidence = box[4]
-        if confidence > threshold:  # Confidence threshold
-            class_id = int(box[5])
-            print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
+        # Ensure box is a 1D array
+        if len(box.shape) == 1:
+            confidence = box[4]
+            if confidence > threshold:  # Confidence threshold
+                class_id = int(box[5])
+                print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
 # Open video file or camera feed
 cap = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Use 0 for webcam or replace with video file path
+print("Loaded delegates:", interpreter._delegates)
 
 while cap.isOpened():
     ret, frame = cap.read()
