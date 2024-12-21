@@ -26,7 +26,7 @@ def preprocess_frame(frame, input_shape):
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
-def postprocess_output(output_data, threshold=0.5):
+def postprocess_output(output_data, threshold=0.1):
     """
     Postprocess YOLOv8 segmentation output.
     - `output_data[0]` contains bounding boxes and class scores.
@@ -54,6 +54,7 @@ while cap.isOpened():
     # Preprocess the frame
     input_data = preprocess_frame(frame, input_shape)
     interpreter.set_tensor(input_details[0]['index'], input_data)
+    print("i")
 
     # Run inference
     interpreter.invoke()
