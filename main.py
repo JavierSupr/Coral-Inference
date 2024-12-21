@@ -37,7 +37,7 @@ def postprocess_output(output_data, threshold=0.5):
             print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
 # Open video file or camera feed
-cap = cv2.VideoCapture(0)  # Use 0 for webcam or replace with video file path
+cap = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Use 0 for webcam or replace with video file path
 
 while cap.isOpened():
     ret, frame = cap.read()
