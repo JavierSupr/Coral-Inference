@@ -43,6 +43,8 @@ def postprocess_output(output_data, threshold=0.5):
 # Open video file or camera feed
 cap = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Use 0 for webcam or replace with video file path
 print("Loaded delegates:", interpreter._delegates)
+print("Using Edge TPU:", "libedgetpu" in str(interpreter._delegates))
+
 
 while cap.isOpened():
     ret, frame = cap.read()
