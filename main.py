@@ -4,10 +4,15 @@ import numpy as np
 import tflite_runtime.interpreter as tflite
 
 # Load the compiled TFLite model
-interpreter = tflite.Interpreter(
-    model_path="yolov8n-seg_float32_edgetpu.tflite",
-    experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
-)
+try:
+    interpreter = tflite.Interpreter(
+        model_path="yolov8n-seg_float32_edgetpu.tflite",
+        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
+    )
+    print("Edge TPU delegate loaded successfully.")
+except ValueError as e:
+    print("Failed to load Edge TPU delegate:", e)
+
 interpreter.allocate_tensors()
 
 print("Profiling information:")
