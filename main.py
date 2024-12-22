@@ -6,7 +6,7 @@ import tflite_runtime.interpreter as tflite
 # Load the compiled TFLite model
 try:
     interpreter = tflite.Interpreter(
-        model_path="240_yolov8n-seg_full_integer_quant_edgetpu.tflite",
+        model_path="240_yolov8n_full_integer_quant_edgetpu.tflite",
         experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
     )
     print("Edge TPU delegate loaded successfully.")
