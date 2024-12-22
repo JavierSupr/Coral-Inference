@@ -10,6 +10,8 @@ interpreter = tflite.Interpreter(
 )
 interpreter.allocate_tensors()
 
+print("Loaded delegates:", interpreter._delegates)
+
 # Get input and output details
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
