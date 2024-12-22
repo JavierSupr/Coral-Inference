@@ -6,7 +6,7 @@ import tflite_runtime.interpreter as tflite
 # Load the compiled TFLite model
 try:
     interpreter = tflite.Interpreter(
-        model_path="yolov8n-seg_float32_edgetpu.tflite",
+        model_path="best_full_integer_quant_edgetpu.tflite",
         experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
     )
     print("Edge TPU delegate loaded successfully.")
@@ -15,8 +15,8 @@ except ValueError as e:
 
 interpreter.allocate_tensors()
 
-print("Profiling information:")
-print(interpreter.get_tensor_details())
+#print("Profiling information:")
+#print(interpreter.get_tensor_details())
 
 print("Loaded delegates:", interpreter._delegates)
 print("Using Edge TPU:", "libedgetpu" in str(interpreter._delegates))
@@ -33,7 +33,7 @@ def preprocess_frame(frame, input_shape):
     image = cv2.resize(frame, (input_shape[1], input_shape[2]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     normalized_image = image / 255.0
-    input_data = np.expand_dims(normalized_image, axis=0).astype(np.float32)
+    input_data = np.expand_dims(normalized_image, axis=0).astype(np.uint8)
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
