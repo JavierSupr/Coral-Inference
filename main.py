@@ -37,7 +37,7 @@ def preprocess_frame(frame, input_shape):
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
-def postprocess_output(output_data, threshold=0.1):
+def postprocess_output(output_data, threshold=0.7):
     boxes = output_data[0]  # Bounding boxes, confidences, and class indices
     for box in boxes:
         if len(box.shape) == 1:
