@@ -17,13 +17,15 @@ output_details = interpreter.get_output_details()
 input_shape = input_details[0]['shape']  # Example: [1, 320, 320, 3]
 
 # Preprocess each video frame
+# Preprocess each video frame
 def preprocess_frame(frame, input_shape):
     image = cv2.resize(frame, (input_shape[1], input_shape[2]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # Normalize to [-128, 127] for INT8
-    normalized_image = image.astype(np.float32) - 128
-    input_data = np.expand_dims(normalized_image, axis=0).astype(np.int8)
+    # Normalize to [0, 1] or as needed by the model
+    normalized_image = image / 255.0
+    input_data = np.expand_dims(normalized_image, axis=0).astype(np.float32)
     return input_data
+
 
 # Postprocess the model output to print detected labels and confidences
 def postprocess_output(output_data, threshold=0.1):
