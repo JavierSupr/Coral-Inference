@@ -10,7 +10,11 @@ interpreter = tflite.Interpreter(
 )
 interpreter.allocate_tensors()
 
+print("Profiling information:")
+print(interpreter.get_tensor_details())
+
 print("Loaded delegates:", interpreter._delegates)
+print("Using Edge TPU:", "libedgetpu" in str(interpreter._delegates))
 
 # Get input and output details
 input_details = interpreter.get_input_details()
