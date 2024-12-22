@@ -33,7 +33,7 @@ def preprocess_frame(frame, input_shape):
     image = cv2.resize(frame, (input_shape[1], input_shape[2]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     normalized_image = image / 255.0
-    input_data = np.expand_dims(normalized_image, axis=0).astype(np.uint8)
+    input_data = np.expand_dims(normalized_image, axis=0).astype(np.int8)
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
