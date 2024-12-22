@@ -32,17 +32,17 @@ input_shape = input_details[0]['shape']  # Example: [1, 320, 320, 3]
 def preprocess_frame(frame, input_shape):
     image = cv2.resize(frame, (input_shape[1], input_shape[2]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    normalized_image = image / 255.0
-    input_data = np.expand_dims(normalized_image, axis=0).astype(np.int8)
+    image = (image - 127.5) / 127.5  # Normalize to [-1, 1] for quantized models
+    input_data = np.expand_dims(image, axis=0).astype(np.int8)  # Ensure dtype matches model
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
-def postprocess_output(output_data, threshold=0.7):
-    boxes = output_data[0]  # Bounding boxes, confidences, and class indices
+def postprocess_output(output_data, threshold=0.3):  # Lower threshold
+    boxes = output_data[0]  # Update this based on tensor structure
     for box in boxes:
         if len(box.shape) == 1:
             confidence = box[4]
-            if confidence > threshold:  # Confidence threshold
+            if confidence > threshold:
                 class_id = int(box[5])
                 print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
