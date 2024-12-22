@@ -44,7 +44,7 @@ def postprocess_output(output_data, threshold=0.3):
                 print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
 # Open video file or camera feed
-cap = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Use 0 for webcam or replace with video file path
+cap = cv2.VideoCapture("video.mp4")  # Use 0 for webcam or replace with video file path
 
 # Measure FPS
 prev_time = time.time()
