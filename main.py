@@ -24,6 +24,7 @@ output_details = interpreter.get_output_details()
 
 # Model input shape
 input_shape = input_details[0]['shape']  # Example: [1, 320, 320, 3]
+print(f" input shape {input_shape}")
 
 # Preprocess each video frame
 def preprocess_frame(frame, input_shape):
