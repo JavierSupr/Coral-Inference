@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 
-# Load the compiled TFLite model
 try:
     interpreter = tflite.Interpreter(
         model_path="best_full_integer_quant_edgetpu.tflite",
@@ -12,7 +11,6 @@ try:
     print("Edge TPU delegate loaded successfully.")
 except ValueError as e:
     print("Failed to load Edge TPU delegate:", e)
-    exit()
 
 interpreter.allocate_tensors()
 
@@ -45,64 +43,61 @@ def postprocess_output(output_data, threshold=0.3):
                 class_id = int(box[5])
                 print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
-# Open two camera feeds or video files
-cap1 = cv2.VideoCapture('video.mp4')  # First camera (use 0 or video file path)
-cap2 = cv2.VideoCapture('333 VID_20231011_170120.mp4')  # Second camera (use 1 or video file path)
-
-if not cap1.isOpened() or not cap2.isOpened():
-    print("Error: Unable to open one or both camera feeds.")
-    exit()
+# Open video streams for two cameras
+cap1 = cv2.VideoCapture('video.mp4')  # First camera
+cap2 = cv2.VideoCapture('333 VID_20231011_170120.mp4')  # Second camera
 
 # Measure FPS
-prev_time = time.time()
+prev_time1 = time.time()
+prev_time2 = time.time()
 
-while True:
+while cap1.isOpened() and cap2.isOpened():
+    # Read frames from both cameras
     ret1, frame1 = cap1.read()
     ret2, frame2 = cap2.read()
 
     if not ret1 or not ret2:
-        print("Error: Unable to read from one or both camera feeds.")
+        print("Failed to capture frames from one or both cameras.")
         break
 
     # Preprocess the frames
     input_data1 = preprocess_frame(frame1, input_shape)
     input_data2 = preprocess_frame(frame2, input_shape)
 
-    # Process first frame
+    # Inference for the first camera
     interpreter.set_tensor(input_details[0]['index'], input_data1)
-    start_time = time.time()
+    start_time1 = time.time()
     interpreter.invoke()
+    inference_time1 = time.time() - start_time1
     output_data1 = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
-    inference_time1 = time.time() - start_time
-
-    # Process second frame
-    interpreter.set_tensor(input_details[0]['index'], input_data2)
-    start_time = time.time()
-    interpreter.invoke()
-    output_data2 = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
-    inference_time2 = time.time() - start_time
-
-    # Postprocess results
+    print("Camera 1 Results:")
     postprocess_output(output_data1)
+
+    # Measure time and calculate FPS for the first camera
+    current_time1 = time.time()
+    elapsed_time1 = current_time1 - prev_time1
+    prev_time1 = current_time1
+    if elapsed_time1 > 0:
+        fps1 = 1 / elapsed_time1
+        print(f"Camera 1 - FPS: {fps1:.2f}, Inference Time: {inference_time1 * 1000:.2f} ms")
+
+    # Inference for the second camera
+    interpreter.set_tensor(input_details[0]['index'], input_data2)
+    start_time2 = time.time()
+    interpreter.invoke()
+    inference_time2 = time.time() - start_time2
+    output_data2 = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+    print("Camera 2 Results:")
     postprocess_output(output_data2)
 
-    # Display the frames
-    cv2.imshow('Camera 1', frame1)
-    cv2.imshow('Camera 2', frame2)
+    # Measure time and calculate FPS for the second camera
+    current_time2 = time.time()
+    elapsed_time2 = current_time2 - prev_time2
+    prev_time2 = current_time2
+    if elapsed_time2 > 0:
+        fps2 = 1 / elapsed_time2
+        print(f"Camera 2 - FPS: {fps2:.2f}, Inference Time: {inference_time2 * 1000:.2f} ms")
 
-    # Measure time and calculate FPS
-    current_time = time.time()
-    elapsed_time = current_time - prev_time
-    prev_time = current_time
-    if elapsed_time > 0:
-        fps = 1 / elapsed_time
-        print(f"FPS: {fps:.2f}, Inference Time Camera 1: {inference_time1 * 1000:.2f} ms, Inference Time Camera 2: {inference_time2 * 1000:.2f} ms")
-
-    # Break the loop if 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Release resources
 cap1.release()
 cap2.release()
 cv2.destroyAllWindows()
