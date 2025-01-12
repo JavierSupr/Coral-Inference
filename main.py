@@ -169,14 +169,11 @@ def main():
             if current_time2 - prev_time2 > 0:
                 fps2 = 1 / (current_time2 - prev_time2)
                 print(f"Camera 2 - FPS: {fps2:.2f}, Inference Time: {inference_time2 * 1000:.2f} ms")
-            
+
+
             prev_time1 = current_time1
             prev_time2 = current_time2
 
-            # Display frames
-            cv2.imshow('Camera 1', frame1)
-            cv2.imshow('Camera 2', frame2)
-            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -187,7 +184,6 @@ def main():
         # Clean up
         cap1.release()
         cap2.release()
-        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
