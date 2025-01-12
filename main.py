@@ -174,8 +174,6 @@ def main():
             prev_time1 = current_time1
             prev_time2 = current_time2
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
     except Exception as e:
         print(f"Error during processing: {e}")
