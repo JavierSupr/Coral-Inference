@@ -1,6 +1,5 @@
 import cv2
 import time
-import pycoral.utils
 import pycoral
 import pycoral.utils.edgetpu
 
