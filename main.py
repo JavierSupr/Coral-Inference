@@ -29,24 +29,43 @@ print(f"Input shape: {input_shape}")
 def preprocess_frame(frame, input_shape):
     image = cv2.resize(frame, (input_shape[1], input_shape[2]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    normalized_image = (image - 127.5) / 127.5  # Normalize for int8 quantization
+    
+    # Print min/max values before normalization
+    print(f"Frame min/max before normalization: {np.min(image)}, {np.max(image)}")
+    
+    normalized_image = (image - 127.5) / 127.5
     input_data = np.expand_dims(normalized_image, axis=0).astype(np.int8)
+    
+    # Print min/max values after normalization
+    print(f"Input data min/max after normalization: {np.min(input_data)}, {np.max(input_data)}")
     return input_data
 
 # Postprocess the model output to print detected labels and confidences
 def postprocess_output(output_data, threshold=0.3):
-    boxes = output_data[0]  # Bounding boxes, confidences, and class indices
-    for box in boxes:
-        if len(box.shape) == 1:
-            confidence = box[4]
-            if confidence > threshold:  # Confidence threshold
-                class_id = int(box[5])
-                print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
+    print("Output data shapes:", [output.shape for output in output_data])
+    print("Output data types:", [output.dtype for output in output_data])
+    
+    boxes = output_data[0]
+    print(f"First few values in output: {boxes[0][:10]}")  # Print first 10 values
+    
+    if len(boxes.shape) == 2:  # If output is in expected format [num_boxes, box_data]
+        for i, box in enumerate(boxes):
+            confidence = box[4] if len(box) > 4 else 0
+            if confidence > threshold:
+                class_id = int(box[5]) if len(box) > 5 else -1
+                x1, y1, x2, y2 = box[0:4]
+                print(f"Box {i}: coords({x1:.2f}, {y1:.2f}, {x2:.2f}, {y2:.2f}), "
+                      f"confidence: {confidence:.2f}, class_id: {class_id}")
+    else:
+        print(f"Unexpected output shape: {boxes.shape}")
 
 # Open video streams for two cameras
 cap1 = cv2.VideoCapture('video.mp4')  # First camera
 cap2 = cv2.VideoCapture('333 VID_20231011_170120.mp4')  # Second camera
 
+print("\nModel Details:")
+print("Input Details:", input_details)
+print("Output Details:", output_details)
 # Measure FPS
 prev_time1 = time.time()
 prev_time2 = time.time()
