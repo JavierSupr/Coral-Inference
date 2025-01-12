@@ -1,13 +1,14 @@
 import cv2
 import time
-from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters import common, detect
+import pycoral.utils
+import pycoral
+import pycoral.utils.edgetpu
 
 # Load the model
 model_path = "best_full_integer_quant_edgetpu.tflite"
-interpreter = make_interpreter(model_path)
+interpreter = pycoral.utils.edgetpu.make_interpreter(model_path)
 interpreter.allocate_tensors()
-input_shape = common.input_size(interpreter)
+input_shape = pycoral.adapters.common.input_size(interpreter)
 print(f"Model input shape: {input_shape}")
 
 # Open cameras
@@ -40,14 +41,14 @@ while cap1.isOpened() and cap2.isOpened():
     input_data2 = preprocess_frame(frame2, input_shape)
 
     # Run inference on first frame
-    common.set_input(interpreter, input_data1)
+    pycoral.adapters.common.set_input(interpreter, input_data1)
     interpreter.invoke()
-    detections1 = detect.get_objects(interpreter, 0.3)
+    detections1 = pycoral.adapters.detect.get_objects(interpreter, 0.3)
 
     # Run inference on second frame
-    common.set_input(interpreter, input_data2)
+    pycoral.adapters.common.set_input(interpreter, input_data2)
     interpreter.invoke()
-    detections2 = detect.get_objects(interpreter, 0.3)
+    detections2 = pycoral.adapters.detect.get_objects(interpreter, 0.3)
 
     # Draw detections on frames
     process_detections(detections1, frame1, (0, 255, 0))
