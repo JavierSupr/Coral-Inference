@@ -1,63 +1,104 @@
-import cv2
 import time
-import pycoral
-import pycoral.utils.edgetpu
+import cv2
+import numpy as np
+import tflite_runtime.interpreter as tflite
 
-# Load the model
-model_path = "best_full_integer_quant_edgetpu.tflite"
-interpreter = pycoral.utils.edgetpu.make_interpreter(model_path)
+# Load the compiled TFLite model
+try:
+    interpreter = tflite.Interpreter(
+        model_path="best_full_integer_quant_edgetpu.tflite",
+        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
+    )
+    print("Edge TPU delegate loaded successfully.")
+except ValueError as e:
+    print("Failed to load Edge TPU delegate:", e)
+    exit()
+
 interpreter.allocate_tensors()
-input_shape = pycoral.adapters.common.input_size(interpreter)
-print(f"Model input shape: {input_shape}")
 
-# Open cameras
-cap1 = cv2.VideoCapture('video.mp4')  # First camera
-cap2 = cv2.VideoCapture('333 VID_20231011_170120.mp4')  # Second camera
+print("Loaded delegates:", interpreter._delegates)
+print("Using Edge TPU:", "libedgetpu" in str(interpreter._delegates))
 
-# Preprocess frame function
+# Get input and output details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# Model input shape
+input_shape = input_details[0]['shape']  # Example: [1, 320, 320, 3]
+print(f"Input shape: {input_shape}")
+
+# Preprocess each video frame
 def preprocess_frame(frame, input_shape):
-    resized_frame = cv2.resize(frame, input_shape)
-    return resized_frame
+    image = cv2.resize(frame, (input_shape[1], input_shape[2]))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    normalized_image = (image - 127.5) / 127.5  # Normalize for int8 quantization
+    input_data = np.expand_dims(normalized_image, axis=0).astype(np.int8)
+    return input_data
 
-# Process detections
-def process_detections(detections, frame, color):
-    for obj in detections:
-        bbox = obj.bbox
-        cv2.rectangle(frame, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), color, 2)
-        label = f"ID: {obj.id}, Conf: {obj.score:.2f}"
-        cv2.putText(frame, label, (bbox.xmin, bbox.ymin - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+# Postprocess the model output to print detected labels and confidences
+def postprocess_output(output_data, threshold=0.3):
+    boxes = output_data[0]  # Bounding boxes, confidences, and class indices
+    for box in boxes:
+        if len(box.shape) == 1:
+            confidence = box[4]
+            if confidence > threshold:  # Confidence threshold
+                class_id = int(box[5])
+                print(f"Class ID: {class_id}, Confidence: {confidence:.2f}")
 
-# Main loop
-while cap1.isOpened() and cap2.isOpened():
+# Open two camera feeds or video files
+cap1 = cv2.VideoCapture('video.mp4')  # First camera (use 0 or video file path)
+cap2 = cv2.VideoCapture('333 VID_20231011_170120.mp4')  # Second camera (use 1 or video file path)
+
+if not cap1.isOpened() or not cap2.isOpened():
+    print("Error: Unable to open one or both camera feeds.")
+    exit()
+
+# Measure FPS
+prev_time = time.time()
+
+while True:
     ret1, frame1 = cap1.read()
     ret2, frame2 = cap2.read()
 
     if not ret1 or not ret2:
+        print("Error: Unable to read from one or both camera feeds.")
         break
 
-    # Preprocess frames
+    # Preprocess the frames
     input_data1 = preprocess_frame(frame1, input_shape)
     input_data2 = preprocess_frame(frame2, input_shape)
 
-    # Run inference on first frame
-    pycoral.adapters.common.set_input(interpreter, input_data1)
+    # Process first frame
+    interpreter.set_tensor(input_details[0]['index'], input_data1)
+    start_time = time.time()
     interpreter.invoke()
-    detections1 = pycoral.adapters.detect.get_objects(interpreter, 0.3)
+    output_data1 = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+    inference_time1 = time.time() - start_time
 
-    # Run inference on second frame
-    pycoral.adapters.common.set_input(interpreter, input_data2)
+    # Process second frame
+    interpreter.set_tensor(input_details[0]['index'], input_data2)
+    start_time = time.time()
     interpreter.invoke()
-    detections2 = pycoral.adapters.detect.get_objects(interpreter, 0.3)
+    output_data2 = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+    inference_time2 = time.time() - start_time
 
-    # Draw detections on frames
-    process_detections(detections1, frame1, (0, 255, 0))
-    process_detections(detections2, frame2, (255, 0, 0))
+    # Postprocess results
+    postprocess_output(output_data1)
+    postprocess_output(output_data2)
 
-    # Show frames
-    cv2.imshow("Camera 1", frame1)
-    cv2.imshow("Camera 2", frame2)
+    # Display the frames
+    cv2.imshow('Camera 1', frame1)
+    cv2.imshow('Camera 2', frame2)
 
-    # Quit if 'q' is pressed
+    # Measure time and calculate FPS
+    current_time = time.time()
+    elapsed_time = current_time - prev_time
+    prev_time = current_time
+    if elapsed_time > 0:
+        fps = 1 / elapsed_time
+        print(f"FPS: {fps:.2f}, Inference Time Camera 1: {inference_time1 * 1000:.2f} ms, Inference Time Camera 2: {inference_time2 * 1000:.2f} ms")
+
+    # Break the loop if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
