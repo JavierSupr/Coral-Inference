@@ -112,7 +112,7 @@ class ObjectDetector:
 
 if __name__ == "__main__":
     detector = ObjectDetector(
-        model_path='240_yolov8n-seg_full_integer_quant_edgetpu.tflite',
+        model_path='best_full_integer_quant_edgetpu.tflite',
         label_path='label.txt'
     )
     video_path = '333 VID_20231011_170120.mp4'
