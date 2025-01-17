@@ -11,8 +11,8 @@ input_shape = common.input_size(interpreter)
 print(f"Model input shape: {input_shape}")
 
 # Open cameras
-cap1 = cv2.VideoCapture(0)  # First camera
-cap2 = cv2.VideoCapture(1)  # Second camera
+cap1 = cv2.VideoCapture("video.mp4")  # First camera
+cap2 = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Second camera
 
 # Preprocess frame function
 def preprocess_frame(frame, input_shape):
@@ -54,12 +54,6 @@ while cap1.isOpened() and cap2.isOpened():
     process_detections(detections2, frame2, (255, 0, 0))
 
     # Show frames
-    cv2.imshow("Camera 1", frame1)
-    cv2.imshow("Camera 2", frame2)
-
-    # Quit if 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
 
 # Release resources
 cap1.release()
