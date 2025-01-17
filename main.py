@@ -24,7 +24,13 @@ if not cap1.isOpened() or not cap2.isOpened():
 def preprocess_frame(frame, size):
     """Resize and preprocess the frame to feed into the model."""
     resized = cv2.resize(frame, size)
-    return np.expand_dims(resized, axis=0)
+    # Convert BGR to RGB (if needed by the model)
+    rgb_frame = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+    # Normalize pixel values to [0, 1] range
+    normalized_frame = rgb_frame / 255.0
+    # Ensure the array has the correct shape
+    return np.expand_dims(normalized_frame.astype('float32'), axis=0)
+
 
 def run_inference(interpreter, frame):
     """Run inference on a single frame."""
