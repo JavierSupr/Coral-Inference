@@ -22,9 +22,37 @@ def preprocess_image(image, input_size):
     """Preprocess the input image to feed to the TFLite model"""
     input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     input_image = cv2.resize(input_image, input_size)
-    input_image = input_image.astype(np.float32)
+    input_image = input_image.astype(np.float32) / 255.0  # Normalize to [0,1]
     input_image = np.expand_dims(input_image, axis=0)
     return input_image
+
+def process_output(interpreter, score_threshold=0.4):
+    """Process YOLO model output"""
+    output_details = interpreter.get_output_details()
+    
+    # Get outputs (adjust indices based on your model's output format)
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+    
+    # Parse predictions
+    detections = []
+    for detection in output_data[0]:
+        # YOLO output format: [x, y, w, h, confidence, class_id, class_scores...]
+        confidence = detection[4]
+        
+        if confidence >= score_threshold:
+            class_id = int(detection[5])
+            xmin = detection[0] - (detection[2] / 2)  # center_x - width/2
+            ymin = detection[1] - (detection[3] / 2)  # center_y - height/2
+            xmax = detection[0] + (detection[2] / 2)  # center_x + width/2
+            ymax = detection[1] + (detection[3] / 2)  # center_y + height/2
+            
+            detections.append({
+                'class_id': class_id,
+                'confidence': confidence,
+                'bbox': [xmin, ymin, xmax, ymax]
+            })
+    
+    return detections
 
 def main():
     # Initialize model
@@ -59,31 +87,31 @@ def main():
             input_tensor1 = preprocess_image(frame1, input_size)
             common.set_input(interpreter, input_tensor1)
             interpreter.invoke()
-            detections1 = detect.get_objects(interpreter, score_threshold=0.4)
+            detections1 = process_output(interpreter)
             
             # Process Camera 2
             input_tensor2 = preprocess_image(frame2, input_size)
             common.set_input(interpreter, input_tensor2)
             interpreter.invoke()
-            detections2 = detect.get_objects(interpreter, score_threshold=0.4)
+            detections2 = process_output(interpreter)
             
             # Print results for Camera 1
             print("\nCamera 1 Detections:")
             if detections1:
-                for obj in detections1:
-                    print(f"{labels[obj.id]}: {obj.score:.2f} at location "
-                          f"({obj.bbox.xmin:.2f}, {obj.bbox.ymin:.2f}, "
-                          f"{obj.bbox.xmax:.2f}, {obj.bbox.ymax:.2f})")
+                for det in detections1:
+                    print(f"{labels[det['class_id']]}: {det['confidence']:.2f} at location "
+                          f"({det['bbox'][0]:.2f}, {det['bbox'][1]:.2f}, "
+                          f"{det['bbox'][2]:.2f}, {det['bbox'][3]:.2f})")
             else:
                 print("No objects detected")
             
             # Print results for Camera 2
             print("\nCamera 2 Detections:")
             if detections2:
-                for obj in detections2:
-                    print(f"{labels[obj.id]}: {obj.score:.2f} at location "
-                          f"({obj.bbox.xmin:.2f}, {obj.bbox.ymin:.2f}, "
-                          f"{obj.bbox.xmax:.2f}, {obj.bbox.ymax:.2f})")
+                for det in detections2:
+                    print(f"{labels[det['class_id']]}: {det['confidence']:.2f} at location "
+                          f"({det['bbox'][0]:.2f}, {det['bbox'][1]:.2f}, "
+                          f"{det['bbox'][2]:.2f}, {det['bbox'][3]:.2f})")
             else:
                 print("No objects detected")
             
