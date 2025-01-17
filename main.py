@@ -73,7 +73,12 @@ try:
                 if score > 0.5:  # Threshold for detection confidence
                     label_index = int(detection[0])
                     bbox = detection[2:]
-                    print(f"  - {labels[label_index]}: {score*100:.2f}% ({bbox})")
+                    try:
+                        label_name = labels[label_index]
+                    except KeyError:
+                        label_name = f"Unknown ({label_index})"
+                    print(f"  - {label_name}: {score*100:.2f}% ({bbox})")
+
 
 except KeyboardInterrupt:
     print("Inference stopped.")
