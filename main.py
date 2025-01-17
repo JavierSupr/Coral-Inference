@@ -46,7 +46,18 @@ try:
 
             # Preprocess frame
             resized_frame = cv2.resize(frame, (width, height))
-            input_data = np.expand_dims(resized_frame, axis=0).astype(np.uint8)
+            input_data = np.expand_dims(resized_frame, axis=0)
+
+            # Check and adjust input data type
+            if input_details[0]['dtype'] == np.int8:
+                # Scale input to INT8 range (-128 to 127)
+                input_data = (input_data.astype(np.float32) - 127.5) / 127.5  # Normalize to [-1, 1]
+                input_data = (input_data * 127).astype(np.int8)  # Scale to INT8
+            elif input_details[0]['dtype'] == np.uint8:
+                # No need to change, already UINT8
+                input_data = input_data.astype(np.uint8)
+            else:
+                raise ValueError(f"Unsupported input data type: {input_details[0]['dtype']}")
 
             # Perform inference
             interpreter.set_tensor(input_details[0]['index'], input_data)
