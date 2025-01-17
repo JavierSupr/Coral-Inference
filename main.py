@@ -30,21 +30,30 @@ def process_output(interpreter, score_threshold=0.4):
     """Process YOLO model output"""
     output_details = interpreter.get_output_details()
     
+    # Print output tensor details for debugging
+    print("\nOutput Tensor Details:")
+    for i, output in enumerate(output_details):
+        print(f"Output {i}: shape={interpreter.get_tensor(output['index']).shape}")
+    
     # Get outputs (adjust indices based on your model's output format)
     output_data = interpreter.get_tensor(output_details[0]['index'])
+    
+    # Print first detection for debugging
+    if output_data.size > 0:
+        print(f"\nFirst detection raw data: {output_data[0][0]}")
     
     # Parse predictions
     detections = []
     for detection in output_data[0]:
         # YOLO output format: [x, y, w, h, confidence, class_id, class_scores...]
-        confidence = detection[4]
+        confidence = float(detection[4])
         
         if confidence >= score_threshold:
             class_id = int(detection[5])
-            xmin = detection[0] - (detection[2] / 2)  # center_x - width/2
-            ymin = detection[1] - (detection[3] / 2)  # center_y - height/2
-            xmax = detection[0] + (detection[2] / 2)  # center_x + width/2
-            ymax = detection[1] + (detection[3] / 2)  # center_y + height/2
+            xmin = float(detection[0] - (detection[2] / 2))  # center_x - width/2
+            ymin = float(detection[1] - (detection[3] / 2))  # center_y - height/2
+            xmax = float(detection[0] + (detection[2] / 2))  # center_x + width/2
+            ymax = float(detection[1] + (detection[3] / 2))  # center_y + height/2
             
             detections.append({
                 'class_id': class_id,
@@ -54,22 +63,46 @@ def process_output(interpreter, score_threshold=0.4):
     
     return detections
 
+def print_detection(detection, labels, camera_id):
+    """Safely print detection results with bounds checking"""
+    try:
+        class_id = detection['class_id']
+        if class_id < 0 or class_id >= len(labels):
+            print(f"Warning: Invalid class_id {class_id} (labels length: {len(labels)})")
+            label = f"Unknown_{class_id}"
+        else:
+            label = labels[class_id]
+            
+        print(f"{label}: {detection['confidence']:.2f} at location "
+              f"({detection['bbox'][0]:.2f}, {detection['bbox'][1]:.2f}, "
+              f"{detection['bbox'][2]:.2f}, {detection['bbox'][3]:.2f})")
+    except Exception as e:
+        print(f"Error printing detection for camera {camera_id}: {str(e)}")
+        print(f"Raw detection data: {detection}")
+
 def main():
     # Initialize model
     model_path = 'best_full_integer_quant_edgetpu.tflite'  # Replace with your model path
     interpreter = edgetpu.make_interpreter(model_path)
     interpreter.allocate_tensors()
     
-    # Get model details
+    # Get and print model details
     input_details = interpreter.get_input_details()
+    print("\nModel Input Details:")
+    print(f"Input shape: {input_details[0]['shape']}")
     input_size = (input_details[0]['shape'][2], input_details[0]['shape'][1])
     
     # Initialize cameras
     cap1, cap2 = initialize_cameras()
     
-    # Load labels (adjust path as needed)
-    with open('label.txt', 'r') as f:
-        labels = [line.strip() for line in f.readlines()]
+    # Load and print labels
+    try:
+        with open('label.txt', 'r') as f:
+            labels = [line.strip() for line in f.readlines()]
+        print(f"\nLoaded {len(labels)} labels")
+    except Exception as e:
+        print(f"Error loading labels: {str(e)}")
+        labels = []
     
     try:
         while True:
@@ -99,9 +132,7 @@ def main():
             print("\nCamera 1 Detections:")
             if detections1:
                 for det in detections1:
-                    print(f"{labels[det['class_id']]}: {det['confidence']:.2f} at location "
-                          f"({det['bbox'][0]:.2f}, {det['bbox'][1]:.2f}, "
-                          f"{det['bbox'][2]:.2f}, {det['bbox'][3]:.2f})")
+                    print_detection(det, labels, 1)
             else:
                 print("No objects detected")
             
@@ -109,9 +140,7 @@ def main():
             print("\nCamera 2 Detections:")
             if detections2:
                 for det in detections2:
-                    print(f"{labels[det['class_id']]}: {det['confidence']:.2f} at location "
-                          f"({det['bbox'][0]:.2f}, {det['bbox'][1]:.2f}, "
-                          f"{det['bbox'][2]:.2f}, {det['bbox'][3]:.2f})")
+                    print_detection(det, labels, 2)
             else:
                 print("No objects detected")
             
