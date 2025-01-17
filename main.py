@@ -147,10 +147,7 @@ def main():
             # Calculate and print FPS
             fps = 1.0 / (time.time() - start_time)
             print(f"\nFPS: {fps:.2f}")
-            
-            # Break loop if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+
                 
     finally:
         # Clean up
