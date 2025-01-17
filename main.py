@@ -1,5 +1,4 @@
 import numpy as np
-import yaml
 import cv2
 from tflite_runtime.interpreter import Interpreter
 from PIL import Image, ImageDraw
@@ -18,8 +17,8 @@ class ObjectDetector:
 
     def load_class_labels(self, file_path):
         with open(file_path, 'r') as f:
-            data = yaml.safe_load(f)
-        return data['names']
+            labels = [line.strip() for line in f.readlines()]
+        return labels
 
     def preprocess_frame(self, frame):
         image_resized = frame.resize((self.input_shape[0], self.input_shape[1]))
@@ -114,7 +113,7 @@ class ObjectDetector:
 if __name__ == "__main__":
     detector = ObjectDetector(
         model_path='240_yolov8n-seg_full_integer_quant_edgetpu.tflite',
-        label_path='metadata.yaml'
+        label_path='label.txt'
     )
     video_path = '333 VID_20231011_170120.mp4'
     detector.run_detection(video_path)
