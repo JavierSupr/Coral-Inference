@@ -6,7 +6,7 @@ from pycoral.adapters.detect import get_objects
 from pycoral.utils.edgetpu import make_interpreter
 
 # Load the model
-MODEL_PATH = 'best_full_integer_quant_edgetpu.tflite'
+MODEL_PATH = '240_yolov8n_full_integer_quant_edgetpu.tflite'
 THRESHOLD = 0.5
 interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
