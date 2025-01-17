@@ -1,93 +1,104 @@
-import time
-import numpy as np
 import cv2
-from pycoral.adapters.common import input_tensor, output_tensor
-from pycoral.adapters.detect import get_objects
-from pycoral.utils.edgetpu import make_interpreter
+import numpy as np
+import time
+from pycoral.utils import edgetpu
+from pycoral.adapters import common
+from pycoral.adapters import detect
 
-# Load the model
-MODEL_PATH = '240_yolov8n_full_integer_quant_edgetpu.tflite'
-THRESHOLD = 0.5
-interpreter = make_interpreter(MODEL_PATH)
-interpreter.allocate_tensors()
+def initialize_cameras():
+    # Initialize two cameras (adjust device IDs as needed)
+    cap1 = cv2.VideoCapture("333 VID_20231011_170120.mp4")
+    cap2 = cv2.VideoCapture("video.mp4")
+    
+    # Set resolution for both cameras (adjust as needed)
+    cap1.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap2.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap2.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    
+    return cap1, cap2
 
-# Initialize cameras
-CAMERA_1_ID = "video.mp4"  # First camera (e.g., /dev/video0)
-CAMERA_2_ID = "333 VID_20231011_170120.mp4"  # Second camera (e.g., /dev/video1)
-cap1 = cv2.VideoCapture(CAMERA_1_ID)
-cap2 = cv2.VideoCapture(CAMERA_2_ID)
+def preprocess_image(image, input_size):
+    """Preprocess the input image to feed to the TFLite model"""
+    input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    input_image = cv2.resize(input_image, input_size)
+    input_image = input_image.astype(np.float32)
+    input_image = np.expand_dims(input_image, axis=0)
+    return input_image
 
-if not cap1.isOpened() or not cap2.isOpened():
-    print("Error: Unable to access one or both cameras.")
-    exit(1)
+def main():
+    # Initialize model
+    model_path = 'best_full_integer_quant_edgetpu.tflite'  # Replace with your model path
+    interpreter = edgetpu.make_interpreter(model_path)
+    interpreter.allocate_tensors()
+    
+    # Get model details
+    input_details = interpreter.get_input_details()
+    input_size = (input_details[0]['shape'][2], input_details[0]['shape'][1])
+    
+    # Initialize cameras
+    cap1, cap2 = initialize_cameras()
+    
+    # Load labels (adjust path as needed)
+    with open('path/to/your/labels.txt', 'r') as f:
+        labels = [line.strip() for line in f.readlines()]
+    
+    try:
+        while True:
+            start_time = time.time()
+            
+            # Read frames from both cameras
+            ret1, frame1 = cap1.read()
+            ret2, frame2 = cap2.read()
+            
+            if not ret1 or not ret2:
+                print("Error reading from cameras")
+                break
+            
+            # Process Camera 1
+            input_tensor1 = preprocess_image(frame1, input_size)
+            common.set_input(interpreter, input_tensor1)
+            interpreter.invoke()
+            detections1 = detect.get_objects(interpreter, threshold=0.4)
+            
+            # Process Camera 2
+            input_tensor2 = preprocess_image(frame2, input_size)
+            common.set_input(interpreter, input_tensor2)
+            interpreter.invoke()
+            detections2 = detect.get_objects(interpreter, threshold=0.4)
+            
+            # Print results for Camera 1
+            print("\nCamera 1 Detections:")
+            if detections1:
+                for obj in detections1:
+                    print(f"{labels[obj.id]}: {obj.score:.2f} at location "
+                          f"({obj.bbox.xmin:.2f}, {obj.bbox.ymin:.2f}, "
+                          f"{obj.bbox.xmax:.2f}, {obj.bbox.ymax:.2f})")
+            else:
+                print("No objects detected")
+            
+            # Print results for Camera 2
+            print("\nCamera 2 Detections:")
+            if detections2:
+                for obj in detections2:
+                    print(f"{labels[obj.id]}: {obj.score:.2f} at location "
+                          f"({obj.bbox.xmin:.2f}, {obj.bbox.ymin:.2f}, "
+                          f"{obj.bbox.xmax:.2f}, {obj.bbox.ymax:.2f})")
+            else:
+                print("No objects detected")
+            
+            # Calculate and print FPS
+            fps = 1.0 / (time.time() - start_time)
+            print(f"\nFPS: {fps:.2f}")
+            
+            # Break loop if 'q' is pressed
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+                
+    finally:
+        # Clean up
+        cap1.release()
+        cap2.release()
 
-def preprocess_frame(frame, size):
-    """Resize and preprocess the frame to feed into the model."""
-    resized = cv2.resize(frame, size)
-    # Convert BGR to RGB (if needed by the model)
-    rgb_frame = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-    # Normalize pixel values to [0, 1] range
-    normalized_frame = rgb_frame / 255.0
-    # Ensure the array has the correct shape
-    return np.expand_dims(normalized_frame.astype('float32'), axis=0)
-
-
-def run_inference(interpreter, frame):
-    """Run inference on a single frame."""
-    size = input_tensor(interpreter).shape[1:3]
-    preprocessed = preprocess_frame(frame, size)
-
-    # Load the tensor and invoke the interpreter
-    input_tensor(interpreter)[:, :] = preprocessed
-    start_time = time.time()
-    interpreter.invoke()
-    inference_time = time.time() - start_time
-
-    # Get detection results
-    detections = get_objects(interpreter, THRESHOLD)
-    return detections, inference_time
-
-def print_detections(detections, cam_id, inference_time, fps):
-    """Print the detection results to the CLI."""
-    print(f"Camera {cam_id} Detections:")
-    print(f"  FPS: {fps:.2f}, Inference Time: {inference_time * 1000:.2f} ms")
-    for detection in detections:
-        print(f"  ID: {detection.id}, Score: {detection.score:.2f}, Bounding Box: {detection.bbox}")
-
-try:
-    frame_count = 0
-    start_time = time.time()
-
-    while True:
-        # Read frames from both cameras
-        ret1, frame1 = cap1.read()
-        ret2, frame2 = cap2.read()
-
-        if not ret1 or not ret2:
-            print("Error: Unable to read frames from one or both cameras.")
-            break
-
-        frame_count += 1
-
-        # Run inference
-        detections1, inference_time1 = run_inference(interpreter, frame1)
-        detections2, inference_time2 = run_inference(interpreter, frame2)
-
-        # Calculate FPS
-        elapsed_time = time.time() - start_time
-        fps = frame_count / elapsed_time
-
-        # Print results
-        print_detections(detections1, cam_id=1, inference_time=inference_time1, fps=fps)
-        print_detections(detections2, cam_id=2, inference_time=inference_time2, fps=fps)
-
-        time.sleep(0.1)  # Add a small delay to limit output frequency
-
-except KeyboardInterrupt:
-    print("Stopping inference.")
-
-finally:
-    # Release resources
-    cap1.release()
-    cap2.release()
-    print("Cameras released.")
+if __name__ == '__main__':
+    main()
