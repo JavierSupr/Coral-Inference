@@ -1,61 +1,87 @@
-import cv2
 import time
+import numpy as np
+import cv2
+from pycoral.adapters.common import input_tensor, output_tensor
+from pycoral.adapters.detect import get_objects
 from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters import common, detect
 
 # Load the model
-model_path = "best_full_integer_quant_edgetpu.tflite"
-interpreter = make_interpreter(model_path)
+MODEL_PATH = 'best_full_integer_quant_edgetpu.tflite'
+THRESHOLD = 0.5
+interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
-input_shape = common.input_size(interpreter)
-print(f"Model input shape: {input_shape}")
 
-# Open cameras
-cap1 = cv2.VideoCapture("video.mp4")  # First camera
-cap2 = cv2.VideoCapture("333 VID_20231011_170120.mp4")  # Second camera
+# Initialize cameras
+CAMERA_1_ID = "video.mp4"  # First camera (e.g., /dev/video0)
+CAMERA_2_ID = "333 VID_20231011_170120.mp4"  # Second camera (e.g., /dev/video1)
+cap1 = cv2.VideoCapture(CAMERA_1_ID)
+cap2 = cv2.VideoCapture(CAMERA_2_ID)
 
-# Preprocess frame function
-def preprocess_frame(frame, input_shape):
-    resized_frame = cv2.resize(frame, input_shape)
-    return resized_frame
+if not cap1.isOpened() or not cap2.isOpened():
+    print("Error: Unable to access one or both cameras.")
+    exit(1)
 
-# Process detections
-def process_detections(detections, frame, color):
-    for obj in detections:
-        bbox = obj.bbox
-        cv2.rectangle(frame, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), color, 2)
-        label = f"ID: {obj.id}, Conf: {obj.score:.2f}"
-        cv2.putText(frame, label, (bbox.xmin, bbox.ymin - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+def preprocess_frame(frame, size):
+    """Resize and preprocess the frame to feed into the model."""
+    resized = cv2.resize(frame, size)
+    return np.expand_dims(resized, axis=0)
 
-# Main loop
-while cap1.isOpened() and cap2.isOpened():
-    ret1, frame1 = cap1.read()
-    ret2, frame2 = cap2.read()
+def run_inference(interpreter, frame):
+    """Run inference on a single frame."""
+    size = input_tensor(interpreter).shape[1:3]
+    preprocessed = preprocess_frame(frame, size)
 
-    if not ret1 or not ret2:
-        break
-
-    # Preprocess frames
-    input_data1 = preprocess_frame(frame1, input_shape)
-    input_data2 = preprocess_frame(frame2, input_shape)
-
-    # Run inference on first frame
-    common.set_input(interpreter, input_data1)
+    # Load the tensor and invoke the interpreter
+    input_tensor(interpreter)[:, :] = preprocessed
+    start_time = time.time()
     interpreter.invoke()
-    detections1 = detect.get_objects(interpreter, 0.3)
+    inference_time = time.time() - start_time
 
-    # Run inference on second frame
-    common.set_input(interpreter, input_data2)
-    interpreter.invoke()
-    detections2 = detect.get_objects(interpreter, 0.3)
+    # Get detection results
+    detections = get_objects(interpreter, THRESHOLD)
+    return detections, inference_time
 
-    # Draw detections on frames
-    process_detections(detections1, frame1, (0, 255, 0))
-    process_detections(detections2, frame2, (255, 0, 0))
+def print_detections(detections, cam_id, inference_time, fps):
+    """Print the detection results to the CLI."""
+    print(f"Camera {cam_id} Detections:")
+    print(f"  FPS: {fps:.2f}, Inference Time: {inference_time * 1000:.2f} ms")
+    for detection in detections:
+        print(f"  ID: {detection.id}, Score: {detection.score:.2f}, Bounding Box: {detection.bbox}")
 
-    # Show frames
+try:
+    frame_count = 0
+    start_time = time.time()
 
-# Release resources
-cap1.release()
-cap2.release()
-cv2.destroyAllWindows()
+    while True:
+        # Read frames from both cameras
+        ret1, frame1 = cap1.read()
+        ret2, frame2 = cap2.read()
+
+        if not ret1 or not ret2:
+            print("Error: Unable to read frames from one or both cameras.")
+            break
+
+        frame_count += 1
+
+        # Run inference
+        detections1, inference_time1 = run_inference(interpreter, frame1)
+        detections2, inference_time2 = run_inference(interpreter, frame2)
+
+        # Calculate FPS
+        elapsed_time = time.time() - start_time
+        fps = frame_count / elapsed_time
+
+        # Print results
+        print_detections(detections1, cam_id=1, inference_time=inference_time1, fps=fps)
+        print_detections(detections2, cam_id=2, inference_time=inference_time2, fps=fps)
+
+        time.sleep(0.1)  # Add a small delay to limit output frequency
+
+except KeyboardInterrupt:
+    print("Stopping inference.")
+
+finally:
+    # Release resources
+    cap1.release()
+    cap2.release()
+    print("Cameras released.")
