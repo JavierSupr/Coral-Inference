@@ -40,7 +40,7 @@ def main():
     cap1, cap2 = initialize_cameras()
     
     # Load labels (adjust path as needed)
-    with open('path/to/your/labels.txt', 'r') as f:
+    with open('label.txt', 'r') as f:
         labels = [line.strip() for line in f.readlines()]
     
     try:
