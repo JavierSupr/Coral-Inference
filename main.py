@@ -59,13 +59,13 @@ def main():
             input_tensor1 = preprocess_image(frame1, input_size)
             common.set_input(interpreter, input_tensor1)
             interpreter.invoke()
-            detections1 = detect.get_objects(interpreter, threshold=0.4)
+            detections1 = detect.get_objects(interpreter, score_threshold=0.4)
             
             # Process Camera 2
             input_tensor2 = preprocess_image(frame2, input_size)
             common.set_input(interpreter, input_tensor2)
             interpreter.invoke()
-            detections2 = detect.get_objects(interpreter, threshold=0.4)
+            detections2 = detect.get_objects(interpreter, score_threshold=0.4)
             
             # Print results for Camera 1
             print("\nCamera 1 Detections:")
