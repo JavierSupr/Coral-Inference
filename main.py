@@ -1,6 +1,7 @@
 import argparse
 import cv2
 import os
+import time
 import numpy as np
 from pycoral.adapters.common import input_size
 from pycoral.adapters.detect import get_objects
@@ -67,6 +68,9 @@ def main():
         return
 
     frame_index = 0
+    total_time = 0
+    start_time = time.time()
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -76,8 +80,10 @@ def main():
         cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cv2_im_rgb = cv2.resize(cv2_im_rgb, inference_size)
 
-        # Run inference
+        # Measure inference time
+        start_inference = time.time()
         run_inference(interpreter, cv2_im_rgb.tobytes())
+        inference_time = time.time() - start_inference
 
         # Extract and process output tensor
         output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
@@ -88,10 +94,14 @@ def main():
         for result in results:
             bbox = result["bbox"]
             print(f"- Label: {result['label']}, Score: {result['score']:.2f}, Bounding Box: {bbox}")
+        print(f"Inference Time: {inference_time:.2f} seconds")
 
         frame_index += 1
+        total_time = time.time() - start_time
 
     cap.release()
+    fps = frame_index / total_time if total_time > 0 else 0
+    print(f"Processed {frame_index} frames in {total_time:.2f} seconds. FPS: {fps:.2f}")
 
 if __name__ == '__main__':
     main()
