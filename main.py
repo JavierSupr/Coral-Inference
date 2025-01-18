@@ -28,6 +28,7 @@ def main():
     print('Loading {} with {} labels.'.format(args.model, args.labels))
     interpreter = make_interpreter(args.model)
     interpreter.allocate_tensors()
+    print("Output details:", interpreter.get_output_details())
     labels = read_label_file(args.labels)
     inference_size = input_size(interpreter)
 
