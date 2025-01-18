@@ -8,6 +8,31 @@ from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.utils.edgetpu import run_inference
 
+def yolo_post_process(output_tensor, labels, threshold):
+    """
+    Process YOLO output tensor to extract bounding boxes, class scores, and labels.
+    """
+    # Remove batch dimension
+    predictions = np.squeeze(output_tensor)
+
+    # Parse each prediction
+    results = []
+    for pred in predictions.T:  # Transpose to iterate over each prediction
+        class_scores = pred[4:]  # Assuming the first 4 values are bounding box
+        max_class_score = np.max(class_scores)
+        class_id = np.argmax(class_scores)
+
+        if max_class_score > threshold:
+            bbox = pred[:4]  # First 4 are bounding box coordinates
+            results.append({
+                "bbox": bbox,
+                "class_id": class_id,
+                "score": max_class_score,
+                "label": labels.get(class_id, "Unknown")
+            })
+
+    return results
+
 def main():
     default_model_dir = ''
     default_model = '240_yolov8n_full_integer_quant_edgetpu.tflite'
@@ -28,7 +53,6 @@ def main():
     print('Loading {} with {} labels.'.format(args.model, args.labels))
     interpreter = make_interpreter(args.model)
     interpreter.allocate_tensors()
-    print("Output details:", interpreter.get_output_details())
     labels = read_label_file(args.labels)
     inference_size = input_size(interpreter)
 
@@ -48,16 +72,22 @@ def main():
         if not ret:
             break
 
+        # Resize frame to model input size
         cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cv2_im_rgb = cv2.resize(cv2_im_rgb, inference_size)
-        run_inference(interpreter, cv2_im_rgb.tobytes())
-        objs = get_objects(interpreter, args.threshold)[:args.top_k]
 
+        # Run inference
+        run_inference(interpreter, cv2_im_rgb.tobytes())
+
+        # Extract and process output tensor
+        output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
+        results = yolo_post_process(output_tensor, labels, args.threshold)
+
+        # Print results for the current frame
         print(f"Frame {frame_index}:")
-        for obj in objs:
-            bbox = obj.bbox
-            label = labels.get(obj.id, obj.id)
-            print(f"- Label: {label}, Score: {obj.score:.2f}, Bounding Box: ({bbox.xmin}, {bbox.ymin}, {bbox.xmax}, {bbox.ymax})")
+        for result in results:
+            bbox = result["bbox"]
+            print(f"- Label: {result['label']}, Score: {result['score']:.2f}, Bounding Box: {bbox}")
 
         frame_index += 1
 
