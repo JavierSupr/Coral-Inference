@@ -23,15 +23,29 @@ def preprocess_frame(frame, input_size):
 # Postprocess output to extract bounding boxes and labels
 def postprocess_output(interpreter, original_width, original_height, threshold=0.5):
     output_details = interpreter.get_output_details()
-    print(output_details)
-    boxes = interpreter.get_tensor(output_details[0]['index'])[0]
-    scores = interpreter.get_tensor(output_details[1]['index'])[0]
-    #classes = interpreter.get_tensor(output_details[2]['index'])[0]
+    
+    # Extract detections from PartitionedCall:0
+    raw_output = interpreter.get_tensor(output_details[0]['index'])  # Shape [1, 116, 756]
+    detections = raw_output[0]  # Remove batch dimension
     
     results = []
-    for i in range(len(scores)):
-        if scores[i] >= threshold:
-            ymin, xmin, ymax, xmax = boxes[i]
+    for detection in detections:
+        # Extract information from each detection
+        bbox = detection[:4]  # First 4 values are bbox (normalized [ymin, xmin, ymax, xmax])
+        confidence = detection[4]  # Confidence score
+        class_scores = detection[5:]  # Class scores
+        
+        # Convert confidence and scores to float (dequantize)
+        confidence = (confidence - 28) * 0.017405057325959206
+        class_scores = (class_scores - 28) * 0.017405057325959206
+        
+        # Get the best class
+        class_id = np.argmax(class_scores)
+        class_score = class_scores[class_id]
+        
+        # Filter by threshold
+        if confidence >= threshold:
+            ymin, xmin, ymax, xmax = bbox
             results.append({
                 'bounding_box': [
                     int(xmin * original_width),
@@ -39,9 +53,11 @@ def postprocess_output(interpreter, original_width, original_height, threshold=0
                     int(xmax * original_width),
                     int(ymax * original_height)
                 ],
-                'score': scores[i]
+                'class_id': class_id,
+                'score': confidence
             })
     return results
+
 
 # Load label map
 def load_labels(label_path):
@@ -83,10 +99,10 @@ def main():
         # Print results
         print(f"Frame {frame_count}:")
         for result in results:
-            #class_id = result['class_id']
+            class_id = result['class_id']
             score = result['score']
             bbox = result['bounding_box']
-            print(f" - Class: , Score: {score:.2f}, BBox: {bbox}")
+            print(f" - Class: {labels[class_id]}, Score: {score:.2f}, BBox: {bbox}")
         
         frame_count += 1
     
