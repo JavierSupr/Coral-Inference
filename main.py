@@ -1,7 +1,7 @@
 import argparse
 import cv2
 import os
-
+import numpy as np
 from pycoral.adapters.common import input_size
 from pycoral.adapters.detect import get_objects
 from pycoral.utils.dataset import read_label_file
