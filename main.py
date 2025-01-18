@@ -16,8 +16,9 @@ def load_model(model_path):
 def preprocess_frame(frame, input_size):
     height, width, _ = frame.shape
     resized = cv2.resize(frame, input_size)
-    normalized = resized / 255.0
-    return np.expand_dims(normalized, axis=0).astype(np.float32), width, height
+    normalized = resized / 255.0  # Normalize pixel values to [0, 1]
+    quantized = (normalized * 255).astype(np.uint8)  # Scale back to [0, 255] and convert to uint8
+    return np.expand_dims(quantized, axis=0), width, height
 
 # Postprocess output to extract bounding boxes and labels
 def postprocess_output(interpreter, original_width, original_height, threshold=0.5):
