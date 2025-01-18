@@ -65,9 +65,9 @@ def load_labels(label_path):
         return {i: line.strip() for i, line in enumerate(f.readlines())}
 
 def main():
-    model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"
+    model_path = "best_full_integer_quant_edgetpu.tflite"
     label_path = "label.txt"
-    video_path = "video.mp4"
+    video_path = "333 VID_20231011_170120.mp4"
     
     # Load model and labels
     interpreter = load_model(model_path)
