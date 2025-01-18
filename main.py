@@ -23,6 +23,7 @@ def preprocess_frame(frame, input_size):
 # Postprocess output to extract bounding boxes and labels
 def postprocess_output(interpreter, original_width, original_height, threshold=0.5):
     output_details = interpreter.get_output_details()
+    print(output_details)
     boxes = interpreter.get_tensor(output_details[0]['index'])[0]
     scores = interpreter.get_tensor(output_details[1]['index'])[0]
     classes = interpreter.get_tensor(output_details[2]['index'])[0]
