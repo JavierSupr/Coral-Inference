@@ -9,7 +9,7 @@ from pycoral.utils.edgetpu import make_interpreter
 from pycoral.utils.edgetpu import run_inference
 
 def main():
-    default_model_dir = '../all_models'
+    default_model_dir = ''
     default_model = '240_yolov8n_full_integer_quant_edgetpu.tflite'
     default_labels = 'label.txt'
     parser = argparse.ArgumentParser()
