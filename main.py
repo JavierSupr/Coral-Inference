@@ -26,7 +26,7 @@ def postprocess_output(interpreter, original_width, original_height, threshold=0
     print(output_details)
     boxes = interpreter.get_tensor(output_details[0]['index'])[0]
     scores = interpreter.get_tensor(output_details[1]['index'])[0]
-    classes = interpreter.get_tensor(output_details[2]['index'])[0]
+    #classes = interpreter.get_tensor(output_details[2]['index'])[0]
     
     results = []
     for i in range(len(scores)):
@@ -39,7 +39,6 @@ def postprocess_output(interpreter, original_width, original_height, threshold=0
                     int(xmax * original_width),
                     int(ymax * original_height)
                 ],
-                'class_id': int(classes[i]),
                 'score': scores[i]
             })
     return results
@@ -84,10 +83,10 @@ def main():
         # Print results
         print(f"Frame {frame_count}:")
         for result in results:
-            class_id = result['class_id']
+            #class_id = result['class_id']
             score = result['score']
             bbox = result['bounding_box']
-            print(f" - Class: {labels[class_id]}, Score: {score:.2f}, BBox: {bbox}")
+            print(f" - Class: , Score: {score:.2f}, BBox: {bbox}")
         
         frame_count += 1
     
