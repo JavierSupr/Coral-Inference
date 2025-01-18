@@ -19,7 +19,7 @@ def main():
                         default=os.path.join(default_model_dir, default_labels))
     parser.add_argument('--top_k', type=int, default=3,
                         help='number of categories with highest score to display')
-    parser.add_argument('--input', type=str, required=True, 
+    parser.add_argument('--input', type=str, 
                         default='video.mp4')
     parser.add_argument('--threshold', type=float, default=0.1,
                         help='classifier score threshold')
