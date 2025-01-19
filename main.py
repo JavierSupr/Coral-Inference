@@ -98,10 +98,12 @@ def main():
 
         frame_index += 1
         total_time = time.time() - start_time
+        fps = frame_index / total_time if total_time > 0 else 0
+        print(f"Processed {frame_index} frames in {total_time:.2f} seconds. FPS: {fps:.2f}")
 
     cap.release()
-    fps = frame_index / total_time if total_time > 0 else 0
-    print(f"Processed {frame_index} frames in {total_time:.2f} seconds. FPS: {fps:.2f}")
+    #fps = frame_index / total_time if total_time > 0 else 0
+    #print(f"Processed {frame_index} frames in {total_time:.2f} seconds. FPS: {fps:.2f}")
 
 if __name__ == '__main__':
     main()
