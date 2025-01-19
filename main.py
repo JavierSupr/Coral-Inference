@@ -9,6 +9,7 @@ from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.utils.edgetpu import run_inference
 
+
 def yolo_post_process(output_tensor, labels, threshold):
     """
     Process YOLO output tensor to extract bounding boxes, class scores, and labels.
@@ -33,6 +34,43 @@ def yolo_post_process(output_tensor, labels, threshold):
             })
 
     return results
+
+
+def draw_results(frame, results, labels):
+    """
+    Draw detection results on the frame.
+    """
+    for result in results:
+        bbox = result["bbox"]
+        label = result["label"]
+        score = result["score"]
+
+        # Convert normalized bbox to pixel values
+        height, width, _ = frame.shape
+        xmin, ymin, xmax, ymax = (
+            int(bbox[0] * width),
+            int(bbox[1] * height),
+            int(bbox[2] * width),
+            int(bbox[3] * height),
+        )
+
+        # Draw bounding box
+        cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+
+        # Draw label and score
+        label_text = f"{label}: {score:.2f}"
+        cv2.putText(
+            frame,
+            label_text,
+            (xmin, ymin - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 255, 0),
+            2,
+        )
+
+    return frame
+
 
 def main():
     default_model_dir = ''
@@ -89,6 +127,12 @@ def main():
         output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
         results = yolo_post_process(output_tensor, labels, args.threshold)
 
+        # Draw results on the frame
+        frame_with_results = draw_results(frame, results, labels)
+
+        # Display the frame
+        cv2.imshow('YOLO Detection', frame_with_results)
+
         # Print results for the current frame
         print(f"Frame {frame_index}:")
         for result in results:
@@ -99,9 +143,15 @@ def main():
         frame_index += 1
         total_time = time.time() - start_time
 
+        # Break on 'q' key press
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
     cap.release()
+    cv2.destroyAllWindows()
     fps = frame_index / total_time if total_time > 0 else 0
     print(f"Processed {frame_index} frames in {total_time:.2f} seconds. FPS: {fps:.2f}")
+
 
 if __name__ == '__main__':
     main()
