@@ -92,6 +92,8 @@ def video_stream(args):
         print("Error: Unable to open video source.")
         return
 
+    frame_index = 0
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -102,12 +104,25 @@ def video_stream(args):
         cv2_im_rgb = cv2.resize(cv2_im_rgb, inference_size)
 
         # Perform inference
+        start_inference = time.time()
         run_inference(interpreter, cv2_im_rgb.tobytes())
+        inference_time = time.time() - start_inference
+
+        # Process output
         output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
         results = yolo_post_process(output_tensor, labels, args.threshold)
 
         # Draw results on the frame
         frame_with_results = draw_results(frame, results, labels)
+
+        # Print results to CLI
+        print(f"\nFrame {frame_index}:")
+        for result in results:
+            bbox = result["bbox"]
+            print(f"- Label: {result['label']}, Score: {result['score']:.2f}, Bounding Box: {bbox}")
+        print(f"Inference Time: {inference_time:.2f} seconds")
+
+        frame_index += 1
 
 
 @app.route('/video_feed')
