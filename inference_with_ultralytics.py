@@ -1,15 +1,37 @@
 import cv2
+import numpy as np
 from ultralytics import YOLO
 import argparse
-import numpy as np
 
 def preprocess_frame(frame, input_size=(640, 640)):
-    """Preprocess frame for TFLite model input."""
-    # Resize frame while maintaining aspect ratio
-    resized = cv2.resize(frame, input_size, interpolation=cv2.INTER_AREA)
+    """Robust frame preprocessing for TFLite model."""
+    # Check if frame is valid
+    if frame is None or frame.size == 0:
+        return None
+
+    # Get original frame dimensions
+    height, width = frame.shape[:2]
+
+    # Calculate aspect ratio preserving resize
+    scale = min(input_size[0] / width, input_size[1] / height)
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+
+    # Resize frame
+    resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    # Create blank canvas
+    canvas = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)
     
-    # Normalize to [0,1] if needed
-    normalized = resized / 255.0
+    # Calculate positioning to center the image
+    y_offset = (input_size[1] - new_height) // 2
+    x_offset = (input_size[0] - new_width) // 2
+    
+    # Place resized image on canvas
+    canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
+
+    # Normalize
+    normalized = canvas.astype(np.float32) / 255.0
     
     # Add batch dimension
     input_data = np.expand_dims(normalized, axis=0)
@@ -17,7 +39,6 @@ def preprocess_frame(frame, input_size=(640, 640)):
     return input_data
 
 def main():
-    # Argument parsing
     parser = argparse.ArgumentParser(description='YOLO Inference on Coral Dev Board')
     parser.add_argument('--model', type=str, required=True, 
                         help='Path to YOLO TFLite Edge TPU model')
@@ -25,34 +46,30 @@ def main():
                         help='Path to input video file')
     args = parser.parse_args()
 
-    # Load YOLO model with explicit task
     try:
         model = YOLO(args.model, task='detect')
     except Exception as e:
-        print(f"Error loading model: {e}")
+        print(f"Model load error: {e}")
         return
 
-    # Open video capture
     cap = cv2.VideoCapture(args.source)
     if not cap.isOpened():
-        print(f"Error: Could not open video file {args.source}")
+        print(f"Could not open video {args.source}")
         return
 
-    # Process video
     frame_count = 0
-    try:
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-            # Preprocess frame
-            processed_frame = preprocess_frame(frame)
+        processed_frame = preprocess_frame(frame)
+        if processed_frame is None:
+            continue
 
-            # Run inference with explicit preprocessing
+        try:
             results = model.predict(processed_frame, verbose=False)
 
-            # Print detection results
             for result in results:
                 boxes = result.boxes
                 if len(boxes) > 0:
@@ -64,13 +81,12 @@ def main():
 
             frame_count += 1
 
-    except Exception as e:
-        print(f"Inference error: {e}")
+        except Exception as e:
+            print(f"Inference error: {e}")
+            break
 
-    finally:
-        # Release resources
-        cap.release()
-        print(f"Processed {frame_count} frames")
+    cap.release()
+    print(f"Processed {frame_count} frames")
 
 if __name__ == "__main__":
     main()
