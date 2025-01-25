@@ -5,38 +5,30 @@ import argparse
 
 def preprocess_frame(frame, input_size=(640, 640)):
     """Robust frame preprocessing for TFLite model."""
-    # Check if frame is valid
     if frame is None or frame.size == 0:
         return None
 
-    # Get original frame dimensions
     height, width = frame.shape[:2]
-
-    # Calculate aspect ratio preserving resize
     scale = min(input_size[0] / width, input_size[1] / height)
-    new_width = int(width * scale)
-    new_height = int(height * scale)
+    new_width = min(int(width * scale), input_size[0])
+    new_height = min(int(height * scale), input_size[1])
 
-    # Resize frame
     resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
-
-    # Create blank canvas
     canvas = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)
-    
-    # Calculate positioning to center the image
-    y_offset = (input_size[1] - new_height) // 2
-    x_offset = (input_size[0] - new_width) // 2
-    
-    # Place resized image on canvas
-    canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
 
-    # Normalize
+    y_offset = max(0, (input_size[1] - new_height) // 2)
+    x_offset = max(0, (input_size[0] - new_width) // 2)
+
+    try:
+        canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
+    except Exception as e:
+        print(f"Error during image placement: {e}")
+        return None
+
     normalized = canvas.astype(np.float32) / 255.0
-    
-    # Add batch dimension
     input_data = np.expand_dims(normalized, axis=0)
-    
     return input_data
+
 
 def main():
     parser = argparse.ArgumentParser(description='YOLO Inference on Coral Dev Board')
