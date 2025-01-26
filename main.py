@@ -144,7 +144,7 @@ def video_feed():
 
 def main():
     default_model_dir = ''
-    default_model = '240_yolov8n_full_integer_quant_edgetpu.tflite'
+    default_model = 'yolov8n_full_integer_quant_edgetpu.tflite'
     default_labels = 'label.txt'
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', help='.tflite model path',
@@ -152,7 +152,7 @@ def main():
     parser.add_argument('--labels', help='label file path',
                         default=os.path.join(default_model_dir, default_labels))
     parser.add_argument('--input', type=str, 
-                        default='video.mp4')
+                        default='333 VID_20231011_170120.mp4')
     parser.add_argument('--threshold', type=float, default=0.1,
                         help='classifier score threshold')
     parser.add_argument('--host', type=str, default='0.0.0.0',
