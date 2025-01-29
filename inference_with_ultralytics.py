@@ -39,7 +39,7 @@ def process_yolo_output(output_data, conf_threshold=0.25):
     
     for i, detection in enumerate(predictions):
         print(f"{i}detection{detection}")
-        confidence = detection[4]  # Object confidence
+        confidence = detection[1]  # Object confidence
         print(f"conf{confidence}")
         if confidence > conf_threshold:
             class_scores = detection[5:]  # Class scores
