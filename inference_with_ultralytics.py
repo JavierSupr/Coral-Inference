@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from pycoral.utils.edgetpu import make_interpreter
+from pycoral.adapters.common import input_size
+from pycoral.adapters.detect import get_objects
 
 def preprocess_frame(frame, input_size=(640, 640)):
     if frame is None or frame.size == 0:
@@ -21,10 +23,10 @@ def preprocess_frame(frame, input_size=(640, 640)):
     return np.expand_dims(canvas, axis=0)  # Shape: (1, 640, 640, 3)
 
 def main():
-    model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"
+    model_path = "yolov8n_full_integer_quant_edgetpu.tflite"
     video_path = "333 VID_20231011_170120.mp4"
 
-    interpreter = tflite.Interpreter(model_path=model_path)
+    interpreter = make_interpreter(model_path)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
