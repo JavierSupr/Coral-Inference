@@ -23,7 +23,7 @@ def preprocess_frame(frame, input_size=(640, 640)):
 
     return np.expand_dims(canvas, axis=0)  # Shape: (1, 640, 640, 3)
 
-def load_labels(label_path="labels.txt"):
+def load_labels(label_path="label.txt"):
     """Load class labels from a file if provided."""
     try:
         with open(label_path, "r") as f:
