@@ -34,11 +34,13 @@ def main():
 
     try:
         model = YOLO(args.model, task='detect')
+        print("1")
     except Exception as e:
         print(f"Model load error: {e}")
         return
 
     cap = cv2.VideoCapture(args.source)
+    print("2")
     if not cap.isOpened():
         print(f"Could not open video {args.source}")
         return
@@ -54,7 +56,9 @@ def main():
             continue
 
         try:
+            print("3")
             results = model.predict(processed_frame, verbose=False)
+            print("4")
 
             for result in results:
                 boxes = result.boxes
