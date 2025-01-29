@@ -35,7 +35,7 @@ def process_yolo_output(output_data, conf_threshold=0.25):
     confidences = []
     
     # Reshape output if necessary
-    predictions = output_data[1]  # Take first batch
+    predictions = output_data[0]  # Take first batch
     
     for detection in predictions:
         confidence = detection[4]  # Object confidence
