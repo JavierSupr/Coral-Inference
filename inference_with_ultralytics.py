@@ -90,7 +90,7 @@ def main():
         
         # Process YOLO output
         boxes, class_ids, confidences = process_yolo_output(output_data)
-        print(output_data)
+        print(output_data[0])
         print()
         # Print results for this frame
         #print(f"\nFrame {frame_count} Detections:")
