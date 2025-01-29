@@ -90,14 +90,15 @@ def main():
         
         # Process YOLO output
         boxes, class_ids, confidences = process_yolo_output(output_data)
-        
+        print(output_data[0])
+        print()
         # Print results for this frame
-        print(f"\nFrame {frame_count} Detections:")
-        for i in range(len(boxes)):
-            print(f"Detection {i + 1}:")
-            print(f"  Class ID: {class_ids[i]}")
-            print(f"  Confidence: {confidences[i]:.2f}")
-            print(f"  Bounding Box: x={boxes[i][0]:.2f}, y={boxes[i][1]:.2f}, w={boxes[i][2]:.2f}, h={boxes[i][3]:.2f}")
+        #print(f"\nFrame {frame_count} Detections:")
+        #for i in range(len(boxes)):
+        #    print(f"Detection {i + 1}:")
+        #    print(f"  Class ID: {class_ids[i]}")
+        #    print(f"  Confidence: {confidences[i]:.2f}")
+        #    print(f"  Bounding Box: x={boxes[i][0]:.2f}, y={boxes[i][1]:.2f}, w={boxes[i][2]:.2f}, h={boxes[i][3]:.2f}")
 
         frame_count += 1
 
