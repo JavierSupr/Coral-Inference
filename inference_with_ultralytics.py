@@ -59,7 +59,7 @@ def process_detection(
     # Load TFLite model
     interpreter = tflite.Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
-
+    print("1")
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     input_shape = input_details[0]['shape']
