@@ -21,11 +21,13 @@ def preprocess_frame(frame, input_size=(640, 640)):
 
     canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
 
-    # Convert UINT8 to INT8
+    # Convert to INT8: Subtract mean and divide by standard deviation, then cast to np.int8
     input_mean = 128
     input_std = 128
-    int8_input = (canvas.astype(np.int8) - input_mean) / input_std
-    return np.expand_dims(int8_input, axis=0)
+    int8_input = ((canvas.astype(np.float32) - input_mean) / input_std).astype(np.int8)
+
+    return np.expand_dims(int8_input, axis=0)  # Ensure shape is (1, 640, 640, 3)
+
 
 
 def main():
