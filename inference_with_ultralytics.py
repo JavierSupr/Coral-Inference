@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        model = YOLO(args.model, task='detect')
+        model = YOLO(args.model)
         print("1")
     except Exception as e:
         print(f"Model load error: {e}")
