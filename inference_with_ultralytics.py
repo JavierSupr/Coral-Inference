@@ -21,14 +21,39 @@ def preprocess_frame(frame, input_size=(640, 640)):
 
     canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
 
-    # Convert to INT8: Subtract mean and divide by standard deviation, then cast to np.int8
     input_mean = 128
     input_std = 128
     int8_input = ((canvas.astype(np.float32) - input_mean) / input_std).astype(np.int8)
 
-    return np.expand_dims(int8_input, axis=0)  # Ensure shape is (1, 640, 640, 3)
+    return np.expand_dims(int8_input, axis=0)
 
-
+def process_yolo_output(output_data, conf_threshold=0.25):
+    # Assuming YOLO output format: [batch, num_boxes, num_classes + 5]
+    # Where 5 represents [x, y, w, h, confidence]
+    boxes = []
+    class_ids = []
+    confidences = []
+    
+    # Reshape output if necessary
+    predictions = output_data[0]  # Take first batch
+    
+    for detection in predictions:
+        confidence = detection[4]  # Object confidence
+        if confidence > conf_threshold:
+            class_scores = detection[5:]  # Class scores
+            class_id = np.argmax(class_scores)
+            class_confidence = class_scores[class_id]
+            
+            # Only proceed if class confidence is good
+            if class_confidence > conf_threshold:
+                # Extract bounding box coordinates
+                x, y, w, h = detection[0:4]
+                
+                boxes.append([x, y, w, h])
+                class_ids.append(class_id)
+                confidences.append(float(confidence * class_confidence))
+    
+    return boxes, class_ids, confidences
 
 def main():
     model_path = "best_full_integer_quant_edgetpu.tflite"
@@ -56,13 +81,24 @@ def main():
         interpreter.set_tensor(input_details[0]['index'], processed_frame)
         interpreter.invoke()
 
+        # Get detection output
         output_data = interpreter.get_tensor(output_details[0]['index'])
-        print(f"Frame {frame_count}: Detection Output ->", output_data)
+        
+        # Process YOLO output
+        boxes, class_ids, confidences = process_yolo_output(output_data)
+        
+        # Print results for this frame
+        print(f"\nFrame {frame_count} Detections:")
+        for i in range(len(boxes)):
+            print(f"Detection {i + 1}:")
+            print(f"  Class ID: {class_ids[i]}")
+            print(f"  Confidence: {confidences[i]:.2f}")
+            print(f"  Bounding Box: x={boxes[i][0]:.2f}, y={boxes[i][1]:.2f}, w={boxes[i][2]:.2f}, h={boxes[i][3]:.2f}")
 
         frame_count += 1
 
     cap.release()
-    print(f"Processed {frame_count} frames")
+    print(f"\nProcessed {frame_count} frames")
 
 if __name__ == "__main__":
     main()
