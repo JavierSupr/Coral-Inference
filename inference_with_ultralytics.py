@@ -4,7 +4,6 @@ from ultralytics import YOLO
 import argparse
 
 def preprocess_frame(frame, input_size=(640, 640)):
-    """Robust frame preprocessing for TFLite model."""
     if frame is None or frame.size == 0:
         return None
 
@@ -19,15 +18,10 @@ def preprocess_frame(frame, input_size=(640, 640)):
     y_offset = max(0, (input_size[1] - new_height) // 2)
     x_offset = max(0, (input_size[0] - new_width) // 2)
 
-    try:
-        canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
-    except Exception as e:
-        print(f"Error during image placement: {e}")
-        return None
+    canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
 
-    normalized = canvas.astype(np.float32) / 255.0
-    input_data = np.expand_dims(normalized, axis=0)
-    return input_data
+    # Return uint8 instead of float32
+    return np.expand_dims(canvas, axis=0)  # Shape: (1, 640, 640, 3)
 
 
 def main():
