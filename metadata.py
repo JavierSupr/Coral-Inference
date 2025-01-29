@@ -1,7 +1,7 @@
 from pycoral.utils.edgetpu import make_interpreter
 
 # Load the TFLite model
-model_path = "yolov8n_full_integer_quant_edgetpu.tflite"
+model_path = "240_yolov8n-seg_full_integer_quant_edgetpu.tflite"
 
 # Load model interpreter
 interpreter =make_interpreter(model_path)
