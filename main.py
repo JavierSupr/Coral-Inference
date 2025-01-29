@@ -38,40 +38,41 @@ def yolo_post_process(output_tensor, labels, threshold):
     return results
 
 
-def draw_results(frame, results, labels):
+def draw_results(frame, results):
     """
     Draw detection results on the frame.
     """
+    height, width, _ = frame.shape  # Get frame dimensions
+
     for result in results:
         bbox = result["bbox"]
         label = result["label"]
         score = result["score"]
 
-        # Convert normalized bbox to pixel values
-        height, width, _ = frame.shape
-        xmin, ymin, xmax, ymax = (
-            int(bbox[0] * width),
-            int(bbox[1] * height),
-            int(bbox[2] * width),
-            int(bbox[3] * height),
-        )
+        # Convert YOLO's normalized bbox to absolute pixel values
+        xmin = int(bbox[0] * width)
+        ymin = int(bbox[1] * height)
+        xmax = int(bbox[2] * width)
+        ymax = int(bbox[3] * height)
+
+        # Ensure bounding box within frame limits
+        xmin, ymin = max(0, xmin), max(0, ymin)
+        xmax, ymax = min(width, xmax), min(height, ymax)
 
         # Draw bounding box
         cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
 
-        # Draw label and score
-        label_text = f"{label}: {score:.2f}"
-        cv2.putText(
-            frame,
-            label_text,
-            (xmin, ymin - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 255, 0),
-            2,
-        )
+        # Label text (with background for readability)
+        label_text = f"{label} ({score:.2f})"
+        text_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
+        text_x, text_y = xmin, ymin - 10 if ymin - 10 > 10 else ymin + 10
+        cv2.rectangle(frame, (text_x, text_y - text_size[1] - 5),
+                      (text_x + text_size[0] + 5, text_y + 5), (0, 255, 0), -1)
+        cv2.putText(frame, label_text, (text_x, text_y),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
     return frame
+
 
 
 def video_stream(args):
@@ -82,47 +83,38 @@ def video_stream(args):
     labels = read_label_file(args.labels)
     inference_size = input_size(interpreter)
 
-    # Open video source
-    if args.input.isdigit():
-        cap = cv2.VideoCapture(int(args.input))  # Use camera index
-    else:
-        cap = cv2.VideoCapture(args.input)  # Use video file
-
+    cap = cv2.VideoCapture(int(args.input)) if args.input.isdigit() else cv2.VideoCapture(args.input)
     if not cap.isOpened():
         print("Error: Unable to open video source.")
         return
-
-    frame_index = 0
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Resize frame to model input size
-        cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        cv2_im_rgb = cv2.resize(cv2_im_rgb, inference_size)
+        # Convert frame to model's input size and perform inference
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_resized = cv2.resize(frame_rgb, inference_size)
 
-        # Perform inference
-        start_inference = time.time()
-        run_inference(interpreter, cv2_im_rgb.tobytes())
-        inference_time = time.time() - start_inference
+        start_time = time.time()
+        run_inference(interpreter, frame_resized.tobytes())
+        inference_time = time.time() - start_time
 
-        # Process output
+        # Extract results and update frame with bounding boxes
         output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
         results = yolo_post_process(output_tensor, labels, args.threshold)
 
         # Draw results on the frame
-        frame_with_results = draw_results(frame, results, labels)
+        frame_with_results = draw_results(frame, results)  # Convert back to BGR format
 
-        # Print results to CLI
-        print(f"\nFrame {frame_index}:")
+        # Print detection results for debugging
+        print(f"\nFrame Processed in {inference_time:.2f} seconds")
         for result in results:
-            bbox = result["bbox"]
-            print(f"- Label: {result['label']}, Score: {result['score']:.2f}, Bounding Box: {bbox}")
-        print(f"Inference Time: {inference_time:.2f} seconds")
+            print(f"- {result['label']}: {result['score']:.2f}, BBox: {result['bbox']}")
 
-        frame_index += 1
+    cap.release()
+
 
 
 @app.route('/video_feed')
