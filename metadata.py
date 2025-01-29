@@ -1,10 +1,10 @@
-import tensorflow as tf
+from pycoral.utils.edgetpu import make_interpreter
 
 # Load the TFLite model
 model_path = "yolov8n_full_integer_quant_edgetpu.tflite"
 
 # Load model interpreter
-interpreter = tf.lite.Interpreter(model_path=model_path)
+interpreter =make_interpreter(model_path=model_path)
 interpreter.allocate_tensors()
 
 # Get model details
