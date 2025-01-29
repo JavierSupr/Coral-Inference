@@ -31,7 +31,7 @@ def preprocess_frame(frame, input_size=(640, 640)):
 
 
 def main():
-    model_path = "yolov8n_full_integer_quant_edgetpu.tflite"
+    model_path = "best_full_integer_quant_edgetpu.tflite"
     video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
