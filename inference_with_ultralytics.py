@@ -32,7 +32,7 @@ def load_labels(label_path="label.txt"):
     except FileNotFoundError:
         return {}
 
-def process_detection(
+def main(
     model_path: str,
     input_path: str,
     imgsz: Union[int, Tuple[int, int]] = (640, 640),
@@ -139,3 +139,7 @@ def process_detection(
     if video_mode:
         cap.release()
     cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
