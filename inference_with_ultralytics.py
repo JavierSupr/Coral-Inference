@@ -20,7 +20,13 @@ def preprocess_frame(frame, input_size=(640, 640)):
     x_offset = max(0, (input_size[0] - new_width) // 2)
 
     canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
-    return np.expand_dims(canvas, axis=0)  # Shape: (1, 640, 640, 3)
+
+    # Convert UINT8 to INT8
+    input_mean = 128
+    input_std = 128
+    int8_input = (canvas.astype(np.int8) - input_mean) / input_std
+    return np.expand_dims(int8_input, axis=0)
+
 
 def main():
     model_path = "yolov8n_full_integer_quant_edgetpu.tflite"
