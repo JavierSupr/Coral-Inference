@@ -86,7 +86,7 @@ def main():
         interpreter.invoke()
 
         # Get detection output
-        output_data = interpreter.get_tensor(output_details[0]['index'])
+        output_data = interpreter.get_tensor(output_details[0]['shape'])
         
         # Process YOLO output
         boxes, class_ids, confidences = process_yolo_output(output_data)
