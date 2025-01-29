@@ -21,8 +21,8 @@ def preprocess_frame(frame, input_size=(640, 640)):
     return np.expand_dims(canvas, axis=0)  # Shape: (1, 640, 640, 3)
 
 def main():
-    model_path = "yolov8n_edgetpu.tflite"
-    video_path = "video.mp4"
+    model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"
+    video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = tflite.Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
