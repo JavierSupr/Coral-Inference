@@ -38,6 +38,7 @@ def process_yolo_output(output_data, conf_threshold=0.25):
     predictions = output_data[0]  # Take first batch
     
     for detection in predictions:
+        print(f"detection{detection}")
         confidence = detection[4]  # Object confidence
         if confidence > conf_threshold:
             class_scores = detection[5:]  # Class scores
