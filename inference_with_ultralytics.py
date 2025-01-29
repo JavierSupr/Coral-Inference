@@ -4,7 +4,7 @@ from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters.common import input_size
 from pycoral.adapters.detect import get_objects
 
-def preprocess_frame(frame, input_size=(640, 640)):
+def preprocess_frame(frame, input_size=(256, 256)):  # Changed input size to 256x256
     if frame is None or frame.size == 0:
         return None
 
@@ -64,6 +64,10 @@ def main():
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
+    
+    # Print input shape information for verification
+    input_shape = input_details[0]['shape']
+    print(f"Model expects input shape: {input_shape}")
 
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
