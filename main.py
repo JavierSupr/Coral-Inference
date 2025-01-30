@@ -11,9 +11,9 @@ from pycoral.utils.edgetpu import run_inference
 
 def yolo_post_process(output_tensor, labels, threshold):
     predictions = np.squeeze(output_tensor)
-    for i, detection in enumerate(predictions):
-        for j, value in enumerate(detection):
-            print(f"{i} detection{detection} - {j} value {value}")
+    #for i, detection in enumerate(predictions):
+    #    for j, value in enumerate(detection):
+    #        print(f"{i} detection{detection} - {j} value {value}")
     results = []
     for pred in predictions.T:
         class_scores = pred[4:]
