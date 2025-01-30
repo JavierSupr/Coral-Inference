@@ -154,12 +154,12 @@ def main():
     args = parser.parse_args()
 
     # Run video processing in a separate thread
-    import threading
-    video_thread = threading.Thread(target=video_stream, args=(args,), daemon=True)
-    video_thread.start()
+    #import threading
+    #video_thread = threading.Thread(target=video_stream, args=(args,), daemon=True)
+    #video_thread.start()
 
     # Start Flask server
-    app.run(host=args.host, port=args.port, debug=True, use_reloader=False)
+    # app.run(host=args.host, port=args.port, debug=True, use_reloader=False)
 
 
 if __name__ == '__main__':
