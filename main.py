@@ -21,6 +21,9 @@ def yolo_post_process(output_tensor, labels, threshold):
     """
     predictions = np.squeeze(output_tensor)
     results = []
+    for i, detection in enumerate(predictions):
+        for j, value in enumerate(detection):
+            print(f"{i} detection{detection} - {j} value {value}")
     for pred in predictions.T:  # Transpose to iterate over each prediction
         class_scores = pred[4:]  # Assuming the first 4 values are bounding box
         max_class_score = np.max(class_scores)
