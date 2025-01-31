@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import time
 from pycoral.adapters.common import input_size
-from pycoral.adapters.segmentation import segment
 from pycoral.utils.edgetpu import make_interpreter
 from flask import Flask, Response
 
@@ -11,7 +10,7 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 # Load TFLite model with Edge TPU
-MODEL_PATH = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
+MODEL_PATH = "deeplabv3_mnv2_edgetpu.tflite"
 interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
 
@@ -48,10 +47,10 @@ def generate_frames(video_path):
         # Run inference
         interpreter.set_tensor(interpreter.get_input_details()[0]['index'], input_data)
         interpreter.invoke()
-        output_data = segment(interpreter)
+        output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
         
         # Post-process output
-        segmentation_mask = output_data.squeeze()
+        segmentation_mask = np.argmax(output_tensor.squeeze(), axis=-1)
         overlayed_frame = overlay_segmentation(frame, segmentation_mask)
         
         # Print segmentation result
