@@ -2,27 +2,27 @@ import argparse
 import cv2
 import numpy as np
 import time
-from pycoral.adapters.common import input_size
-from pycoral.utils.edgetpu import make_interpreter
+import tflite_runtime.interpreter as tflite
 from flask import Flask, Response
 
 # Flask app initialization
 app = Flask(__name__)
 
-# Load TFLite model with Edge TPU
+# Load TFLite model and allocate tensors
 MODEL_PATH = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
-print("1")
-interpreter = make_interpreter(MODEL_PATH, device=':0')
+interpreter = tflite.Interpreter(model_path=MODEL_PATH, experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
 interpreter.allocate_tensors()
-print("2")
-# Get input tensor shape
-input_shape = input_size(interpreter)
+
+# Get input and output tensors
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+input_shape = input_details[0]['shape']
 
 # Function to preprocess frame
 def preprocess_frame(frame, target_size):
-    frame_resized = cv2.resize(frame, target_size)
+    frame_resized = cv2.resize(frame, (target_size[1], target_size[2]))
     frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-    frame_normalized = np.expand_dims(frame_rgb.astype(np.uint8), axis=0)
+    frame_normalized = np.expand_dims(frame_rgb.astype(np.float32) / 255.0, axis=0)
     return frame_normalized
 
 # Function to overlay segmentation mask
@@ -44,17 +44,14 @@ def generate_frames(video_path):
         
         # Preprocess frame
         input_data = preprocess_frame(frame, input_shape)
-        print("3")
         
         # Run inference
-        interpreter.set_tensor(interpreter.get_input_details()[0]['index'], input_data)
-        print("4")
+        interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
-        print("5")
-        output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
-        print("6")
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+        
         # Post-process output
-        segmentation_mask = np.argmax(output_tensor.squeeze(), axis=-1)
+        segmentation_mask = np.argmax(output_data.squeeze(), axis=-1)
         overlayed_frame = overlay_segmentation(frame, segmentation_mask)
         
         # Print segmentation result
