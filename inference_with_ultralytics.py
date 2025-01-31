@@ -50,7 +50,7 @@ def preprocess_frame(frame, input_size=(513, 513)):
     return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
 def generate_frames():
-    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
+    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
     video_path = "WIN_20240924_12_35_51_Pro.mp4"
 
     interpreter = make_interpreter(model_path)
