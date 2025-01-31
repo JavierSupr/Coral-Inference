@@ -59,7 +59,7 @@ def process_yolo_output(output_data, conf_threshold=0.25):
     return boxes, class_ids, confidences
 
 def main():
-    model_path = "240_yolov8n-seg_full_integer_quant_edgetpu.tflite"
+    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
     video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
