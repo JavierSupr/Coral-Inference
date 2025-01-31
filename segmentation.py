@@ -11,9 +11,10 @@ app = Flask(__name__)
 
 # Load TFLite model with Edge TPU
 MODEL_PATH = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
+print("1")
 interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
-
+print("2")
 # Get input tensor shape
 input_shape = input_size(interpreter)
 
