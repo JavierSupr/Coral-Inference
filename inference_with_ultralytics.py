@@ -68,6 +68,8 @@ def main():
         if not ret:
             break
 
+        frame_start_time = time.time()
+
         processed_frame = preprocess_frame(frame)
         if processed_frame is None:
             continue
@@ -89,12 +91,17 @@ def main():
         detected_classes = [CLASS_NAMES.get(cls, "Unknown") for cls in unique_classes]
         print(f"Detected Classes: {detected_classes}")
         
+        frame_end_time = time.time()
+        frame_time = frame_end_time - frame_start_time
+        fps = 1.0 / frame_time
+        print(f"Real-time FPS: {fps:.2f}")
+        
         frame_count += 1
     
     cap.release()
     end_time = time.time()
-    fps = frame_count / (end_time - start_time)
-    print(f"Processed {frame_count} frames at {fps:.2f} FPS")
+    avg_fps = frame_count / (end_time - start_time)
+    print(f"Processed {frame_count} frames at an average of {avg_fps:.2f} FPS")
 
 if __name__ == "__main__":
     main()
