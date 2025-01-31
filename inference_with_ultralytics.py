@@ -20,15 +20,11 @@ def preprocess_frame(frame, input_size=(513, 513)):
     
     canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
     
-    # Convert to int8 for Edge TPU model
-    input_mean = 128
-    input_std = 128
-    int8_input = ((canvas.astype(np.float32) - input_mean) / input_std).astype(np.int8)
-    
-    return np.expand_dims(int8_input, axis=0)
+    # Convert to UINT8 (Edge TPU model requires UINT8)
+    return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
 def main():
-    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
+    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
     video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
@@ -39,7 +35,7 @@ def main():
     
     # Print model input shape for verification
     input_shape = input_details[0]['shape']
-    print(f"Model expects input shape: {input_shape}")
+    print(f"Model expects input shape: {input_shape}, dtype: {input_details[0]['dtype']}")
 
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
@@ -57,7 +53,7 @@ def main():
         interpreter.set_tensor(input_details[0]['index'], processed_frame)
         interpreter.invoke()
 
-        # Get segmentation output (usually an int8 mask)
+        # Get segmentation output (usually a mask)
         output_data = interpreter.get_tensor(output_details[0]['index'])
         segmentation_mask = output_data[0]  # Extract mask from batch
         
