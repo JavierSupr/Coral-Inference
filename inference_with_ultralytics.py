@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from flask import Flask, Response
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters.common import input_size
 
@@ -23,8 +24,8 @@ def preprocess_frame(frame, input_size=(513, 513)):
     # Convert to UINT8 (Edge TPU model requires UINT8)
     return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
-def main():
-    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite" # Change to correct model path
+def generate_frames():
+    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
     video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
@@ -33,13 +34,8 @@ def main():
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     
-    # Print model input shape for verification
-    input_shape = input_details[0]['shape']
-    print(f"Model expects input shape: {input_shape}, dtype: {input_details[0]['dtype']}")
-
     cap = cv2.VideoCapture(video_path)
-    frame_count = 0
-
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -57,17 +53,22 @@ def main():
         output_data = interpreter.get_tensor(output_details[0]['index'])
         segmentation_mask = output_data[0]  # Extract mask from batch
         
-        # Print detected classes and confidence scores
-        unique_classes, counts = np.unique(segmentation_mask, return_counts=True)
-        for cls, count in zip(unique_classes, counts):
-            confidence = count / np.sum(counts)  # Approximate confidence as frequency
-            print(f"Class: {cls}, Confidence: {confidence:.2f}")
+        # Overlay segmentation mask on frame
+        mask_resized = cv2.resize(segmentation_mask, (frame.shape[1], frame.shape[0]), interpolation=cv2.INTER_NEAREST)
+        frame[mask_resized > 0] = [0, 255, 0]  # Apply green mask
         
-        print(f"Frame {frame_count}: Segmentation Output Shape: {segmentation_mask.shape}")
-        frame_count += 1
-
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+        
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+    
     cap.release()
-    print(f"\nProcessed {frame_count} frames")
+
+app = Flask(__name__)
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
-    main()
+    app.run(host='0.0.0.0', port=5000, debug=True)
