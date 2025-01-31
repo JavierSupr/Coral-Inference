@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from flask import Flask, Response
+import time
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters.common import input_size
 
@@ -49,9 +49,9 @@ def preprocess_frame(frame, input_size=(513, 513)):
     # Convert to UINT8 (Edge TPU model requires UINT8)
     return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
-def generate_frames():
-    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
-    video_path = "WIN_20240924_12_35_51_Pro.mp4"
+def main():
+    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
+    video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
     interpreter.allocate_tensors()
@@ -60,7 +60,9 @@ def generate_frames():
     output_details = interpreter.get_output_details()
     
     cap = cv2.VideoCapture(video_path)
-    
+    frame_count = 0
+    start_time = time.time()
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -87,18 +89,12 @@ def generate_frames():
         detected_classes = [CLASS_NAMES.get(cls, "Unknown") for cls in unique_classes]
         print(f"Detected Classes: {detected_classes}")
         
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = buffer.tobytes()
-        
-        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        frame_count += 1
     
     cap.release()
-
-app = Flask(__name__)
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    end_time = time.time()
+    fps = frame_count / (end_time - start_time)
+    print(f"Processed {frame_count} frames at {fps:.2f} FPS")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    main()
