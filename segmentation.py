@@ -1,71 +1,83 @@
 import argparse
 import cv2
 import numpy as np
-from PIL import Image
+import time
+import tflite_runtime.interpreter as tflite
 from flask import Flask, Response
-from pycoral.adapters import common, segment
-from pycoral.utils.edgetpu import make_interpreter
 
-def create_pascal_label_colormap():
-    colormap = np.zeros((256, 3), dtype=int)
-    indices = np.arange(256, dtype=int)
-    for shift in reversed(range(8)):
-        for channel in range(3):
-            colormap[:, channel] |= ((indices >> channel) & 1) << shift
-        indices >>= 3
-    return colormap
+# Flask app initialization
+app = Flask(__name__)
 
-def label_to_color_image(label):
-    if label.ndim != 2:
-        raise ValueError('Expect 2-D input label')
-    colormap = create_pascal_label_colormap()
-    if np.max(label) >= len(colormap):
-        raise ValueError('label value too large.')
-    return colormap[label]
+# Load TFLite model and allocate tensors
+MODEL_PATH = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
+interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
 
-def process_frame(frame, interpreter, width, height):
-    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    resized_img = img.resize((width, height), Image.LANCZOS)
-    common.set_input(interpreter, resized_img)
-    interpreter.invoke()
-    result = segment.get_output(interpreter)
-    if len(result.shape) == 3:
-        result = np.argmax(result, axis=-1)
-    mask = label_to_color_image(result).astype(np.uint8)
-    mask_img = cv2.resize(mask, (frame.shape[1], frame.shape[0]))
-    return cv2.addWeighted(frame, 0.6, mask_img, 0.4, 0)
+# Get input and output tensors
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+input_shape = input_details[0]['shape']
 
-def generate_frames(interpreter, width, height, video_source):
-    cap = cv2.VideoCapture(video_source)
+# Function to preprocess frame
+def preprocess_frame(frame, target_size):
+    frame_resized = cv2.resize(frame, (target_size[1], target_size[2]))
+    frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
+    frame_normalized = np.expand_dims(frame_rgb.astype(np.float32) / 255.0, axis=0)
+    return frame_normalized
+
+# Function to overlay segmentation mask
+def overlay_segmentation(frame, mask):
+    colors = np.random.randint(0, 255, (256, 3), dtype=np.uint8)
+    mask_color = colors[mask]
+    overlay = cv2.addWeighted(frame, 0.5, mask_color, 0.5, 0)
+    return overlay
+
+# Function to process video frame by frame
+def generate_frames(video_path):
+    cap = cv2.VideoCapture(video_path)
     while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
+        ret, frame = cap.read()
+        if not ret:
             break
-        segmented_frame = process_frame(frame, interpreter, width, height)
-        ret, buffer = cv2.imencode('.jpg', segmented_frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+        start_time = time.time()
+        
+        # Preprocess frame
+        input_data = preprocess_frame(frame, input_shape)
+        
+        # Run inference
+        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+        
+        # Post-process output
+        segmentation_mask = np.argmax(output_data.squeeze(), axis=-1)
+        overlayed_frame = overlay_segmentation(frame, segmentation_mask)
+        
+        # Print segmentation result
+        unique_classes, counts = np.unique(segmentation_mask, return_counts=True)
+        for cls, count in zip(unique_classes, counts):
+            print(f"Class {cls}: {count} pixels")
+        
+        end_time = time.time()
+        print(f"Inference time: {end_time - start_time:.3f} seconds")
+
+        # Encode frame for streaming
+        _, buffer = cv2.imencode('.jpg', overlayed_frame)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
     cap.release()
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model', required=True, help='Path of the segmentation model.', default= 'deeplabv3_mnv2_pascal_quant.tflite')
-    parser.add_argument('--input', required=True, help='File path of the input video.')
-    args = parser.parse_args()
-
-    interpreter = make_interpreter(args.model)
-    interpreter.allocate_tensors()
-    width, height = common.input_size(interpreter)
-
-    app = Flask(__name__)
-
-    @app.route('/video_feed')
-    def video_feed():
-        return Response(generate_frames(interpreter, width, height, args.input), 
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
-
-    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+# Flask route to stream video
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(args.video), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--video', type=str, required=True, help='Path to input video file')
+    args = parser.parse_args()
+    
+    # Run Flask server
+    app.run(host='0.0.0.0', port=5000, debug=True)
