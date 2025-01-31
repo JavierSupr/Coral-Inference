@@ -44,12 +44,15 @@ def generate_frames(video_path):
         
         # Preprocess frame
         input_data = preprocess_frame(frame, input_shape)
+        print("3")
         
         # Run inference
         interpreter.set_tensor(interpreter.get_input_details()[0]['index'], input_data)
+        print("4")
         interpreter.invoke()
+        print("5")
         output_tensor = interpreter.tensor(interpreter.get_output_details()[0]['index'])()
-        
+        print("6")
         # Post-process output
         segmentation_mask = np.argmax(output_tensor.squeeze(), axis=-1)
         overlayed_frame = overlay_segmentation(frame, segmentation_mask)
