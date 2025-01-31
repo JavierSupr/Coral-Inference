@@ -24,7 +24,7 @@ def preprocess_frame(frame, input_size=(513, 513)):
     return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
 def main():
-    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
+    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
     video_path = "333 VID_20231011_170120.mp4"
 
     interpreter = make_interpreter(model_path)
@@ -56,6 +56,12 @@ def main():
         # Get segmentation output (usually a mask)
         output_data = interpreter.get_tensor(output_details[0]['index'])
         segmentation_mask = output_data[0]  # Extract mask from batch
+        
+        # Print detected classes and confidence scores
+        unique_classes, counts = np.unique(segmentation_mask, return_counts=True)
+        for cls, count in zip(unique_classes, counts):
+            confidence = count / np.sum(counts)  # Approximate confidence as frequency
+            print(f"Class: {cls}, Confidence: {confidence:.2f}")
         
         print(f"Frame {frame_count}: Segmentation Output Shape: {segmentation_mask.shape}")
         frame_count += 1
