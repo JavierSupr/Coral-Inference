@@ -4,6 +4,31 @@ from flask import Flask, Response
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters.common import input_size
 
+# Define class names for segmentation labels
+CLASS_NAMES = {
+    0: "Background",
+    1: "Aeroplane",
+    2: "Bicycle",
+    3: "Bird",
+    4: "Boat",
+    5: "Bottle",
+    6: "Bus",
+    7: "Car",
+    8: "Cat",
+    9: "Chair",
+    10: "Cow",
+    11: "Dining table",
+    12: "Dog",
+    13: "Horse",
+    14: "Motorbike",
+    15: "Person",
+    16: "Potted plant",
+    17: "Sheep",
+    18: "Sofa",
+    19: "Train",
+    20: "TV/Monitor"
+}
+
 def preprocess_frame(frame, input_size=(513, 513)):
     if frame is None or frame.size == 0:
         return None
@@ -25,8 +50,8 @@ def preprocess_frame(frame, input_size=(513, 513)):
     return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
 
 def generate_frames():
-    model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
-    video_path = "333 VID_20231011_170120.mp4"
+    model_path = "mobilenetv2_deeplabv3_edgetpu.tflite"  # Change to correct model path
+    video_path = "WIN_20240924_12_35_51_Pro.mp4"
 
     interpreter = make_interpreter(model_path)
     interpreter.allocate_tensors()
@@ -56,6 +81,11 @@ def generate_frames():
         # Overlay segmentation mask on frame
         mask_resized = cv2.resize(segmentation_mask, (frame.shape[1], frame.shape[0]), interpolation=cv2.INTER_NEAREST)
         frame[mask_resized > 0] = [0, 255, 0]  # Apply green mask
+        
+        # Print detected classes
+        unique_classes = np.unique(mask_resized)
+        detected_classes = [CLASS_NAMES.get(cls, "Unknown") for cls in unique_classes]
+        print(f"Detected Classes: {detected_classes}")
         
         ret, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = buffer.tobytes()
