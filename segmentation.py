@@ -2,27 +2,27 @@ import argparse
 import cv2
 import numpy as np
 import time
-import tflite_runtime.interpreter as tflite
+from pycoral.adapters.common import input_size
+from pycoral.adapters.segmentation import segment
+from pycoral.utils.edgetpu import make_interpreter
 from flask import Flask, Response
 
 # Flask app initialization
 app = Flask(__name__)
 
-# Load TFLite model and allocate tensors
+# Load TFLite model with Edge TPU
 MODEL_PATH = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
-interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
 
-# Get input and output tensors
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-input_shape = input_details[0]['shape']
+# Get input tensor shape
+input_shape = input_size(interpreter)
 
 # Function to preprocess frame
 def preprocess_frame(frame, target_size):
-    frame_resized = cv2.resize(frame, (target_size[1], target_size[2]))
+    frame_resized = cv2.resize(frame, target_size)
     frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-    frame_normalized = np.expand_dims(frame_rgb.astype(np.float32) / 255.0, axis=0)
+    frame_normalized = np.expand_dims(frame_rgb.astype(np.uint8), axis=0)
     return frame_normalized
 
 # Function to overlay segmentation mask
@@ -46,12 +46,12 @@ def generate_frames(video_path):
         input_data = preprocess_frame(frame, input_shape)
         
         # Run inference
-        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.set_tensor(interpreter.get_input_details()[0]['index'], input_data)
         interpreter.invoke()
-        output_data = interpreter.get_tensor(output_details[0]['index'])
+        output_data = segment(interpreter)
         
         # Post-process output
-        segmentation_mask = np.argmax(output_data.squeeze(), axis=-1)
+        segmentation_mask = output_data.squeeze()
         overlayed_frame = overlay_segmentation(frame, segmentation_mask)
         
         # Print segmentation result
