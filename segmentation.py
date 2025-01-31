@@ -54,7 +54,7 @@ def main():
     parser.add_argument('--input', required=True, help='File path of the input video.')
     args = parser.parse_args()
 
-    interpreter = make_interpreter(args.model, device=':0')
+    interpreter = make_interpreter(args.model)
     interpreter.allocate_tensors()
     width, height = common.input_size(interpreter)
 
