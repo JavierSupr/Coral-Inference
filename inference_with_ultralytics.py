@@ -84,8 +84,8 @@ def process_video(video_path, model_path, video_id):
 if __name__ == "__main__":
     model_path = "keras_post_training_unet_mv2_128_quant_edgetpu.tflite"
     video_paths = [
-        "video1.mp4",  # Replace with actual path
-        "video2.mp4"   # Replace with actual path
+        "333-vid-20231011-170120_Tt2GmTrq.mp4",  # Replace with actual path
+        "WIN_20240924_12_35_51_Pro.mp4"   # Replace with actual path
     ]
     
     threads = []
