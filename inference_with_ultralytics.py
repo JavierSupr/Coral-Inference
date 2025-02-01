@@ -29,7 +29,6 @@ CLASS_NAMES = {
     20: "TV/Monitor"
 }
 
-
 def main():
     model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
     video_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
@@ -51,26 +50,30 @@ def main():
 
         frame_start_time = time.time()
 
-        #processed_frame = preprocess_frame(frame)
-        #if processed_frame is None:
-        #    continue
+        # Ensure frame has correct dimensions (1, 513, 513, 3)
+        input_tensor = np.expand_dims(frame, axis=0)
 
         # Run inference
-        interpreter.set_tensor(input_details[0]['index'], frame)
+        interpreter.set_tensor(input_details[0]['index'], input_tensor)
         interpreter.invoke()
 
-        # Get segmentation output (usually a mask)
+        # Get segmentation output
         output_data = interpreter.get_tensor(output_details[0]['index'])
         segmentation_mask = output_data[0]  # Extract mask from batch
         
-        # Overlay segmentation mask on frame
-        mask_resized = cv2.resize(segmentation_mask, (frame.shape[1], frame.shape[0]), interpolation=cv2.INTER_NEAREST)
-        frame[mask_resized > 0] = [0, 255, 0]  # Apply green mask
+        # Calculate class confidence based on frequency in segmentation mask
+        unique_classes, counts = np.unique(segmentation_mask, return_counts=True)
+        total_pixels = np.sum(counts)
         
-        # Print detected classes
-        unique_classes = np.unique(mask_resized)
-        detected_classes = [CLASS_NAMES.get(cls, "Unknown") for cls in unique_classes]
-        print(f"Detected Classes: {detected_classes}")
+        detected_classes = []
+        for cls, count in zip(unique_classes, counts):
+            class_name = CLASS_NAMES.get(cls, "Unknown")
+            confidence = count / total_pixels  # Approximate confidence as pixel proportion
+            detected_classes.append((class_name, confidence))
+            print(f"Class: {class_name}, Confidence: {confidence:.2f}")
+        
+        # Overlay segmentation mask on frame
+        frame[segmentation_mask > 0] = [0, 255, 0]  # Apply green mask
         
         frame_end_time = time.time()
         frame_time = frame_end_time - frame_start_time
