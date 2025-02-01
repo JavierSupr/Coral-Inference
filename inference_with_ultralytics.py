@@ -29,6 +29,27 @@ CLASS_NAMES = {
     20: "TV/Monitor"
 }
 
+def preprocess_frame(frame, input_size=(513, 513)):
+    if frame is None or frame.size == 0:
+        return None
+    
+    height, width = frame.shape[:2]
+    scale = min(input_size[0] / width, input_size[1] / height)
+    new_width = min(int(width * scale), input_size[0])
+    new_height = min(int(height * scale), input_size[1])
+    
+    resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    canvas = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)
+    
+    y_offset = max(0, (input_size[1] - new_height) // 2)
+    x_offset = max(0, (input_size[0] - new_width) // 2)
+    
+    canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
+    
+    # Convert to UINT8 (Edge TPU model requires UINT8)
+    return np.expand_dims(canvas, axis=0)  # No need for normalization, keep raw uint8
+
+
 def main():
     model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
     video_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
@@ -49,12 +70,15 @@ def main():
             break
 
         frame_start_time = time.time()
+    
+        processed_frame = preprocess_frame(frame)
+        if processed_frame is None:
+            continue
 
         # Ensure frame has correct dimensions (1, 513, 513, 3)
-        input_tensor = np.expand_dims(frame, axis=0)
 
         # Run inference
-        interpreter.set_tensor(input_details[0]['index'], input_tensor)
+        interpreter.set_tensor(input_details[0]['index'], processed_frame)
         interpreter.invoke()
 
         # Get segmentation output
@@ -71,9 +95,6 @@ def main():
             confidence = count / total_pixels  # Approximate confidence as pixel proportion
             detected_classes.append((class_name, confidence))
             print(f"Class: {class_name}, Confidence: {confidence:.2f}")
-        
-        # Overlay segmentation mask on frame
-        frame[segmentation_mask > 0] = [0, 255, 0]  # Apply green mask
         
         frame_end_time = time.time()
         frame_time = frame_end_time - frame_start_time
