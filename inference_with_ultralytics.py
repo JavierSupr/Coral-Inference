@@ -32,7 +32,7 @@ CLASS_NAMES = {
 
 def main():
     model_path = "deeplabv3_mnv2_pascal_quant_edgetpu.tflite"  # Change to correct model path
-    video_path = "333 VID_20231011_170120.mp4"
+    video_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
 
     interpreter = make_interpreter(model_path)
     interpreter.allocate_tensors()
