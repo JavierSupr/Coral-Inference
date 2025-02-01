@@ -29,7 +29,7 @@ CLASS_NAMES = {
     20: "TV/Monitor"
 }
 
-def preprocess_frame(frame, input_size=(513, 513)):
+def preprocess_frame(frame, input_size=(128, 128)):
     if frame is None or frame.size == 0:
         return None
     
