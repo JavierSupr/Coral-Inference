@@ -9,16 +9,13 @@ def process_detection(
     model_path: str,
     input_path: str,
     imgsz: Union[int, Tuple[int, int]],
-    threshold: int = 0.4,
+    threshold: float = 0.4,
     verbose: bool = True,
     show: bool = False,
     classes: List[int] = None,
 ):
-
     # Load a model
-    model = YOLO(
-        model=model_path, task="detect"
-    )  # Load a official model or custom model
+    model = YOLO(model=model_path, task="detect")
 
     # Run Prediction
     outs = model.predict(
@@ -32,8 +29,15 @@ def process_detection(
     )
 
     frame_count = 0
-    start_time = time.time()
+    prev_time = time.time()
+    
     for out in outs:
+        current_time = time.time()
+        elapsed_time = current_time - prev_time
+        prev_time = current_time
+        
+        fps = 1 / elapsed_time if elapsed_time > 0 else 0
+        
         if verbose:
             print("\n\n-------RESULTS--------")
         objs_lst = []
@@ -59,8 +63,6 @@ def process_detection(
                 print("  bbox:  ", bb)
 
         frame_count += 1
-        elapsed_time = time.time() - start_time
-        fps = frame_count / elapsed_time
 
         if verbose:
             print("----INFERENCE TIME----")
@@ -73,13 +75,13 @@ def process_detection(
             break
 
 # Define paths and parameters
-model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"  # Path to the YOLO model (change to your .tflite model if needed)
-input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"  # Path to an image or video file; use '0' for webcam
-imgsz = 256  # Image size used during inference
-threshold = 0.4  # Confidence threshold
-verbose = True  # Print detected objects
-show = False  # Display detection results
-classes = None  # Detect all classes, or specify class IDs (e.g., [0, 1, 2])
+model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"
+input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
+imgsz = 256
+threshold = 0.4
+verbose = True
+show = False
+classes = None
 
 # Call the function and process the output
 for objects, fps in process_detection(
