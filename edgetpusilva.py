@@ -1,8 +1,11 @@
 import time
+import cv2
+import threading
+from flask import Flask, Response, render_template
+from ultralytics import YOLO
 from typing import Tuple, Union, List
 
-import cv2
-from ultralytics import YOLO
+app = Flask(__name__)
 
 def process_segmentation(
     model_path: str,
@@ -48,6 +51,12 @@ def process_segmentation(
     start_time = time.time()
     for out in outs:
         masks = out.masks
+        frame = out.plot()  # Draw the segmentation on the frame
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
         if verbose:
             print("\n\n-------RESULTS--------")
         objs_lst = []
@@ -81,6 +90,17 @@ def process_segmentation(
         # Break the loop if 'esc' key is pressed for video or camera
         if cv2.waitKey(1) == 27:
             break
+
+@app.route('/')
+def index():
+    return "<h1>YOLOv8 Video Streaming</h1><img src='/video_feed' width='720px'>"
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(process_segmentation(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
 # Define paths and parameters
 model_path = "best_full_integer_quant_edgetpu.tflite"
 input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
