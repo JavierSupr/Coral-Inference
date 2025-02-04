@@ -6,6 +6,13 @@ from ultralytics import YOLO
 from typing import Tuple, Union, List
 
 app = Flask(__name__)
+model_path = "best_full_integer_quant_edgetpu.tflite"
+input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
+imgsz = 256
+threshold = 0.4
+verbose = True
+show = False
+classes = None
 
 def process_segmentation(
     model_path: str,
@@ -97,18 +104,11 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(process_segmentation(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(process_segmentation(model_path, input_path, imgsz, threshold, verbose, show, classes), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
 # Define paths and parameters
-model_path = "best_full_integer_quant_edgetpu.tflite"
-input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
-imgsz = 256
-threshold = 0.4
-verbose = True
-show = False
-classes = None
 
 # Call the function and process the output
 for objects, fps in process_segmentation(
