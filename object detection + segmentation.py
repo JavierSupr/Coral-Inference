@@ -27,22 +27,20 @@ def detect_vehicle(frame):
     objs = get_objects(detection_interpreter, 0.4)  # Detection threshold
     return objs
 
-def run_segmentation(frame):
-    """Runs the segmentation model on the detected truck in a separate thread."""
-    resized = cv2.resize(frame, input_size(segmentation_interpreter))
-    input_tensor = np.expand_dims(resized, axis=0)
-    
-    segmentation_interpreter.set_tensor(segmentation_interpreter.get_input_details()[0]['index'], input_tensor)
-    segmentation_interpreter.invoke()
-    
-    segmentation_output = segmentation_interpreter.tensor(segmentation_interpreter.get_output_details()[0]['index'])()
-    cv2.imwrite("segmented_truck.png", segmentation_output)
-    print("Truck detected and segmented.")
+#def run_segmentation(frame):
+#    """Runs the segmentation model on the detected truck in a separate thread."""
+#    resized = cv2.resize(frame, input_size(segmentation_interpreter))
+#    input_tensor = np.expand_dims(resized, axis=0)
+#    
+#    segmentation_interpreter.set_tensor(segmentation_interpreter.get_input_details()[0]['index'], input_tensor)
+#    segmentation_interpreter.invoke()
+#    
+#    segmentation_output = segmentation_interpreter.tensor(segmentation_interpreter.get_output_details()[0]['index'])()
+#    cv2.imwrite("segmented_truck.png", segmentation_output)
+#    print("Truck detected and segmented.")
 
-def main():
-    cap = cv2.VideoCapture("333-vid-20231011-170120_Tt2GmTrq.mp4")  # Open camera
+def process_camera(cap, camera_id):
     prev_time = time.time()
-    
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -51,7 +49,7 @@ def main():
         curr_time = time.time()
         fps = 1 / (curr_time - prev_time)
         prev_time = curr_time
-        print(f"FPS: {fps:.2f}")
+        print(f"Camera {camera_id} - FPS: {fps:.2f}")
         
         detections = detect_vehicle(frame)
         for obj in detections:
@@ -60,14 +58,29 @@ def main():
             
             if label == 7:  # Assuming label 7 is 'truck'
                 x1, y1, x2, y2 = bbox
-                print(f"Truck detected at ({x1}, {y1}), ({x2}, {y2})")
+                print(f"Camera {camera_id} - Truck detected at ({x1}, {y1}), ({x2}, {y2})")
                 truck_crop = frame[y1:y2, x1:x2]
                 
                 #segmentation_thread = threading.Thread(target=run_segmentation, args=(truck_crop,))
                 #segmentation_thread.start()
         
-
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
     cap.release()
+
+def main():
+    cap1 = cv2.VideoCapture("333-vid-20231011-170120_Tt2GmTrq.mp4")  # First camera
+    cap2 = cv2.VideoCapture("WIN_20240924_12_35_51_Pro.mp4")  # Second camera
+    
+    thread1 = threading.Thread(target=process_camera, args=(cap1, 1))
+    thread2 = threading.Thread(target=process_camera, args=(cap2, 2))
+    
+    thread1.start()
+    thread2.start()
+    
+    thread1.join()
+    thread2.join()
 
 if __name__ == "__main__":
     main()
