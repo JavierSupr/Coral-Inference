@@ -17,7 +17,7 @@ def process_detection(
 
     # Load a model
     model = YOLO(
-        model=model_path, task="detect", verbose=False
+        model=model_path, task="detect"
     )  # Load a official model or custom model
 
     # Run Prediction
