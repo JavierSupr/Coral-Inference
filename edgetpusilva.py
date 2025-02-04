@@ -88,7 +88,7 @@ def process_segmentation(
         
 # Define paths and parameters
 model_path = "best_full_integer_quant_edgetpu.tflite"
-input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
+input_path = "333 VID_20231011_170120_1.mp4"
 imgsz = 256
 threshold = 0.4
 verbose = True
