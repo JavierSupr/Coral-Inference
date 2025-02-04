@@ -7,7 +7,7 @@ from pycoral.adapters.detect import get_objects
 from pycoral.utils.edgetpu import make_interpreter
 
 # Load models
-DETECTION_MODEL = "tf2_ssd_mobilenet_v2_coco17_ptq_edgetpu.tflite"
+DETECTION_MODEL = "ssd_mobilenet_v1_coco_quant_postprocess_edgetpu (1).tflite"
 SEGMENTATION_MODEL = "deeplabv3_mnv2_dm05_pascal_quant_edgetpu.tflite"
 
 detection_interpreter = make_interpreter(DETECTION_MODEL)
