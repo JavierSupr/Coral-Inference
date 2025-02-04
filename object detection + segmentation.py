@@ -64,8 +64,8 @@ def process_camera(cap, camera_id):
                 #segmentation_thread = threading.Thread(target=run_segmentation, args=(truck_crop,))
                 #segmentation_thread.start()
         
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        #if cv2.waitKey(1) & 0xFF == ord('q'):
+        #    break
     
     cap.release()
 
