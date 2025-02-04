@@ -63,8 +63,8 @@ def main():
                 print(f"Truck detected at ({x1}, {y1}), ({x2}, {y2})")
                 truck_crop = frame[y1:y2, x1:x2]
                 
-                segmentation_thread = threading.Thread(target=run_segmentation, args=(truck_crop,))
-                segmentation_thread.start()
+                #segmentation_thread = threading.Thread(target=run_segmentation, args=(truck_crop,))
+                #segmentation_thread.start()
         
 
     cap.release()
