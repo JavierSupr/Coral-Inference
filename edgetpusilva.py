@@ -75,7 +75,7 @@ def process_detection(
 # Define paths and parameters
 model_path = "240_yolov8n_full_integer_quant_edgetpu.tflite"  # Path to the YOLO model (change to your .tflite model if needed)
 input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"  # Path to an image or video file; use '0' for webcam
-imgsz = 640  # Image size used during inference
+imgsz = 256  # Image size used during inference
 threshold = 0.4  # Confidence threshold
 verbose = True  # Print detected objects
 show = False  # Display detection results
