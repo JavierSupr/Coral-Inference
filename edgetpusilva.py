@@ -82,9 +82,9 @@ def process_segmentation(
         if cv2.waitKey(1) == 27:
             break
 # Define paths and parameters
-model_path = "240_yolov8n-seg_full_integer_quant_edgetpu.tflite"
+model_path = "best_full_integer_quant_edgetpu.tflite"
 input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
-imgsz = 240
+imgsz = 192
 threshold = 0.4
 verbose = True
 show = False
