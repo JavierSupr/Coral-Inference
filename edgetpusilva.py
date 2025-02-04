@@ -82,8 +82,6 @@ def process_segmentation(
             print("\n----INFERENCE TIME----")
             print("FPS: {:.2f}".format(fps))
 
-        yield objs_lst, fps
-
         # Break the loop if 'esc' key is pressed for video or camera
         if cv2.waitKey(1) == 27:
             break
