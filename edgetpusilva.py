@@ -30,7 +30,7 @@ def process_segmentation(
 
     # Load a model
     model = YOLO(
-        model=model_path, task="segment", verbose=False
+        model=model_path, task="segment"
     )  # Load a official model or custom model
 
     # Run Prediction
