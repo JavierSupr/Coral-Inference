@@ -13,8 +13,8 @@ SEGMENTATION_MODEL = "deeplabv3_mnv2_dm05_pascal_quant_edgetpu.tflite"
 detection_interpreter = make_interpreter(DETECTION_MODEL)
 detection_interpreter.allocate_tensors()
 
-segmentation_interpreter = make_interpreter(SEGMENTATION_MODEL)
-segmentation_interpreter.allocate_tensors()
+#segmentation_interpreter = make_interpreter(SEGMENTATION_MODEL)
+#segmentation_interpreter.allocate_tensors()
 
 def detect_vehicle(frame):
     """Runs the vehicle detection model on a frame."""
