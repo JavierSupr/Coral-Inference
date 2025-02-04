@@ -15,7 +15,7 @@ def process_detection(
     classes: List[int] = None,
 ):
     # Load a model
-    model = YOLO(model=model_path, task="detect")
+    model = YOLO(model=model_path, task="segment")
 
     # Run Prediction
     outs = model.predict(
@@ -32,35 +32,27 @@ def process_detection(
     prev_time = time.time()
     
     for out in outs:
-        current_time = time.time()
-        elapsed_time = current_time - prev_time
-        prev_time = current_time
-        
-        fps = 1 / elapsed_time if elapsed_time > 0 else 0
-        
+        masks = out.masks
         if verbose:
             print("\n\n-------RESULTS--------")
         objs_lst = []
-        for box in out.boxes:
+        for index, box in enumerate(out.boxes):
+            seg = masks.xy[index]
             obj_cls, conf, bb = (
                 box.cls.numpy()[0],
                 box.conf.numpy()[0],
                 box.xyxy.numpy()[0],
             )
             label = out.names[int(obj_cls)]
-            ol = {
-                "id": obj_cls,
-                "label": label,
-                "conf": conf,
-                "bbox": bb,
-            }
+            ol = {"id": obj_cls, "label": label, "conf": conf, "bbox": bb, "seg": seg}
             objs_lst.append(ol)
 
             if verbose:
                 print(label)
                 print("  id:    ", obj_cls)
                 print("  score: ", conf)
-                print("  bbox:  ", bb)
+                print("  seg:  ", type(seg))
+
 
         frame_count += 1
 
@@ -75,9 +67,9 @@ def process_detection(
             break
 
 # Define paths and parameters
-model_path = "192_yolov8n_full_integer_quant_edgetpu.tflite"
+model_path = "240_yolov8n-seg_full_integer_quant_edgetpu.tflite"
 input_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"
-imgsz = 192
+imgsz = 240
 threshold = 0.4
 verbose = True
 show = False
