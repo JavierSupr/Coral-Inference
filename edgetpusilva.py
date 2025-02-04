@@ -1,7 +1,7 @@
 import time
 import cv2
 import threading
-from flask import Flask, Response, render_template
+from flask import Flask, Response
 from ultralytics import YOLO
 from typing import Tuple, Union, List
 
@@ -18,32 +18,14 @@ def process_segmentation(
     model_path: str,
     input_path: str,
     imgsz: Union[int, Tuple[int, int]],
-    threshold: int = 0.4,
+    threshold: float = 0.4,
     verbose: bool = True,
     show: bool = False,
     classes: List[int] = None,
 ):
-    """Run object segmentation with with edge-tpu-silva
+    """Run object segmentation with edge-tpu-silva"""
 
-    Args:
-        model_path (str): Define a .tflite model
-        input_path (str): File path of image/video to process | Camera(0|1|2).
-        imgsz (Union[int, Tuple[int, int]]): Defines the image size for inference. Can be a single integer 640 for square resizing or a (height, width) tuple. This should be same as what was used to export the YOLO model.
-        threshold (int, optional): Threshold for detected objects. Defaults to 0.4.
-        verbose (bool, optional): Display prints to terminal. Defaults to True.
-        show (bool, optional): Display frame with detection. Defaults to False.
-        classes (List[int], optional): Filters predictions to a set of class IDs. Only detections belonging to the specified classes will be returned. Defaults to None.
-
-    Yields:
-        (Gen): frame, objs_lst, fps
-    """
-
-    # Load a model
-    model = YOLO(
-        model=model_path, task="segment"
-    )  # Load a official model or custom model
-
-    # Run Prediction
+    model = YOLO(model=model_path, task="segment")
     outs = model.predict(
         source=input_path,
         conf=threshold,
@@ -57,62 +39,46 @@ def process_segmentation(
     frame_count = 0
     start_time = time.time()
     for out in outs:
-        masks = out.masks
-        frame = out.plot()  # Draw the segmentation on the frame
+        frame = out.plot()
         _, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = buffer.tobytes()
+
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-        if verbose:
-            print("\n\n-------RESULTS--------")
         objs_lst = []
         for index, box in enumerate(out.boxes):
-            seg = masks.xy[index]
+            seg = out.masks.xy[index]
             obj_cls, conf, bb = (
                 box.cls.numpy()[0],
                 box.conf.numpy()[0],
                 box.xyxy.numpy()[0],
             )
             label = out.names[int(obj_cls)]
-            ol = {"id": obj_cls, "label": label, "conf": conf, "bbox": bb, "seg": seg}
-            objs_lst.append(ol)
-
-            if verbose:
-                print(label)
-                print("  id:    ", obj_cls)
-                print("  score: ", conf)
-                print("  seg:  ", type(seg))
+            objs_lst.append({"id": obj_cls, "label": label, "conf": conf, "bbox": bb, "seg": seg})
 
         frame_count += 1
         elapsed_time = time.time() - start_time
         fps = frame_count / elapsed_time
 
         if verbose:
-            print("\n----INFERENCE TIME----")
-            print("FPS: {:.2f}".format(fps))
-
-        yield objs_lst, fps
-
-        # Break the loop if 'esc' key is pressed for video or camera
-        if cv2.waitKey(1) == 27:
-            break
+            print(f"\nDetected Objects: {objs_lst}")
+            print(f"FPS: {fps:.2f}")
 
 @app.route('/')
 def index():
-    return "<h1>YOLOv8 Video Streaming</h1><img src='/video_feed' width='720px'>"
+    return """<h1>YOLOv8 Video Streaming</h1><img src='/video_feed' width='720px'>"""
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(process_segmentation(model_path, input_path, imgsz, threshold, verbose, show, classes), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(process_segmentation(model_path, input_path, imgsz, threshold, verbose, show, classes),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+def run_segmentation():
+    for objects, fps in process_segmentation(model_path, input_path, imgsz, threshold, verbose, show, classes):
+        print("Detected Objects:", objects)
+        print("FPS:", fps)
 
 if __name__ == '__main__':
+    threading.Thread(target=run_segmentation, daemon=True).start()
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
-# Define paths and parameters
-
-# Call the function and process the output
-for objects, fps in process_segmentation(
-    model_path, input_path, imgsz, threshold, verbose, show, classes
-):
-    print("\nDetected Objects:", objects)
-    print("FPS:", fps)
