@@ -1,8 +1,15 @@
 import time
+import socket
+import json
 from typing import Tuple, Union, List
 
 import cv2
 from ultralytics import YOLO
+
+# UDP Configuration
+UDP_IP = "192.168.1.100"  # Replace with your PC's IP address
+UDP_PORT = 5000  # Port to send data
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Create UDP socket
 
 def process_segmentation(
     model_path: str,
@@ -13,20 +20,7 @@ def process_segmentation(
     show: bool = False,
     classes: List[int] = None,
 ):
-    """Run object segmentation with with edge-tpu-silva
-
-    Args:
-        model_path (str): Define a .tflite model
-        input_path (str): File path of image/video to process | Camera(0|1|2).
-        imgsz (Union[int, Tuple[int, int]]): Defines the image size for inference. Can be a single integer 640 for square resizing or a (height, width) tuple. This should be same as what was used to export the YOLO model.
-        threshold (float, optional): Threshold for detected objects. Defaults to 0.4.
-        verbose (bool, optional): Display prints to terminal. Defaults to True.
-        show (bool, optional): Display frame with detection. Defaults to False.
-        classes (List[int], optional): Filters predictions to a set of class IDs. Only detections belonging to the specified classes will be returned. Defaults to None.
-
-    Yields:
-        (Gen): frame, objs_lst, fps
-    """
+    """Run object segmentation with edge-tpu and send results via UDP."""
 
     # Load a model
     model = YOLO(model=model_path, task="segment")
@@ -36,20 +30,16 @@ def process_segmentation(
         source=input_path,
         conf=threshold,
         imgsz=imgsz,
-        #verbose=False,
-        #stream=True,
-        #show=show,
-        #classes=classes,
+        verbose=False,
+        stream=True,
+        show=show,
+        classes=classes,
     )
-    print(f"result {outs}")
-    print("end")
 
     frame_count = 0
     prev_time = time.time()
     
     for out in outs:
-        print(f"results {out}")
-        print("end")
         current_time = time.time()
         elapsed_time = current_time - prev_time
         prev_time = current_time
@@ -58,8 +48,8 @@ def process_segmentation(
         
         masks = out.masks
 
-        #erbose:
-            #print("\n\n-------RESULTS--------")
+        if verbose:
+            print("\n\n-------RESULTS--------")
         objs_lst = []
         for index, box in enumerate(out.boxes):
             seg = masks.xy[index]
@@ -69,27 +59,32 @@ def process_segmentation(
                 box.xyxy.numpy()[0],
             )
             label = out.names[int(obj_cls)]
-            ol = {"id": obj_cls, "label": label, "conf": conf, "bbox": bb, "seg": seg}
+            ol = {"id": int(obj_cls), "label": label, "conf": float(conf), "bbox": bb.tolist(), "seg": [s.tolist() for s in seg]}
             objs_lst.append(ol)
 
-            #if verbose:
-                #print(label)
-                #print("  id:    ", obj_cls)
-                #print("  score: ", conf)
-                #print("  seg:  ", type(seg))
+            if verbose:
+                print(label)
+                print("  id:    ", obj_cls)
+                print("  score: ", conf)
+                print("  seg:  ", type(seg))
 
         frame_count += 1
 
-        #if verbose:
-        #    print("\n----INFERENCE TIME----")
-        #    print("FPS: {:.2f}".format(fps))
+        if verbose:
+            print("\n----INFERENCE TIME----")
+            print("FPS: {:.2f}".format(fps))
+
+        # Convert objects to JSON and send via UDP
+        message = json.dumps({"objects": objs_lst, "fps": fps})
+        sock.sendto(message.encode(), (UDP_IP, UDP_PORT))
 
         # Break the loop if 'esc' key is pressed for video or camera
         if cv2.waitKey(1) == 27:
             break
 
         yield objs_lst, fps
-        
+
+
 # Define paths and parameters
 model_path = "best_full_integer_quant_edgetpu.tflite"
 input_path = "333 VID_20231011_170120_1.mp4"
@@ -103,5 +98,5 @@ classes = None
 for objects, fps in process_segmentation(
     model_path, input_path, imgsz, threshold, verbose, show, classes
 ):
-    #print("\nDetected Objects:", objects)
+    print("\nDetected Objects:", objects)
     print("FPS:", fps)
