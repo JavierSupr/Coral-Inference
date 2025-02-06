@@ -41,6 +41,8 @@ def process_segmentation(
         show=show,
         classes=classes,
     )
+    print(f"result {outs}")
+    print("end")
 
     frame_count = 0
     prev_time = time.time()
