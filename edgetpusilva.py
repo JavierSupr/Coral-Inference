@@ -48,6 +48,8 @@ def process_segmentation(
     prev_time = time.time()
     
     for out in outs:
+        print(f"results {out}")
+        print("end")
         current_time = time.time()
         elapsed_time = current_time - prev_time
         prev_time = current_time
