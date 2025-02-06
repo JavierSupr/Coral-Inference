@@ -56,8 +56,8 @@ def process_segmentation(
         
         masks = out.masks
 
-        if verbose:
-            print("\n\n-------RESULTS--------")
+        #erbose:
+            #print("\n\n-------RESULTS--------")
         objs_lst = []
         for index, box in enumerate(out.boxes):
             seg = masks.xy[index]
@@ -70,17 +70,17 @@ def process_segmentation(
             ol = {"id": obj_cls, "label": label, "conf": conf, "bbox": bb, "seg": seg}
             objs_lst.append(ol)
 
-            if verbose:
-                print(label)
-                print("  id:    ", obj_cls)
-                print("  score: ", conf)
-                print("  seg:  ", type(seg))
+            #if verbose:
+                #print(label)
+                #print("  id:    ", obj_cls)
+                #print("  score: ", conf)
+                #print("  seg:  ", type(seg))
 
         frame_count += 1
 
-        if verbose:
-            print("\n----INFERENCE TIME----")
-            print("FPS: {:.2f}".format(fps))
+        #if verbose:
+        #    print("\n----INFERENCE TIME----")
+        #    print("FPS: {:.2f}".format(fps))
 
         # Break the loop if 'esc' key is pressed for video or camera
         if cv2.waitKey(1) == 27:
@@ -101,5 +101,5 @@ classes = None
 for objects, fps in process_segmentation(
     model_path, input_path, imgsz, threshold, verbose, show, classes
 ):
-    print("\nDetected Objects:", objects)
+    #print("\nDetected Objects:", objects)
     print("FPS:", fps)
