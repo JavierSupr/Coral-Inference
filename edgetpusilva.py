@@ -7,7 +7,7 @@ import cv2
 from ultralytics import YOLO
 
 # UDP Configuration
-UDP_IP = "192.168.4.1"  # Replace with your PC's IP address
+UDP_IP = "192.168.137.1"  # Replace with your PC's IP address
 UDP_PORT = 5000  # Port to send data
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Create UDP socket
 
