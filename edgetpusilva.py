@@ -36,10 +36,10 @@ def process_segmentation(
         source=input_path,
         conf=threshold,
         imgsz=imgsz,
-        verbose=False,
-        stream=True,
-        show=show,
-        classes=classes,
+        #verbose=False,
+        #stream=True,
+        #show=show,
+        #classes=classes,
     )
     print(f"result {outs}")
     print("end")
