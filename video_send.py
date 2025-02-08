@@ -4,7 +4,7 @@ import numpy as np
 import struct
 
 # UDP Socket configuration
-UDP_IP = "192.168.1.2"  # Replace with receiver's IP address
+UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
 UDP_PORT = 5005         # Port to send data
 BUFFER_SIZE = 65000     # Max UDP packet size
 
