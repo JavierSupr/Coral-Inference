@@ -11,7 +11,7 @@ UDP_PORT = 5005         # Port to send data
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Open video capture
-cap = cv2.VideoCapture('/dev/video0')  # Use 0 for webcam, or provide a video file
+cap = cv2.VideoCapture('/dev/video1')  # Use 0 for webcam, or provide a video file
 
 # Set frame size
 WIDTH = 640
