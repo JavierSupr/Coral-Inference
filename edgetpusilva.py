@@ -6,7 +6,7 @@ import numpy as np
 from ultralytics import YOLO
 
 # Define UDP settings
-UDP_IP = "192.168.1.100"  # Replace with your PC's IP address
+UDP_IP = "192.168.137.1"  # Replace with your PC's IP address
 VIDEO_PORT = 5004  # Video stream via RTP
 RESULTS_PORT = 5005  # Inference results via UDP
 
