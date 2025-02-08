@@ -39,10 +39,10 @@ while cap.isOpened():
         sock.sendto(chunk, (UDP_IP, UDP_PORT))
 
     # Display the sending video
-    cv2.imshow('Sender', frame)
+    #cv2.imshow('Sender', frame)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    #f cv2.waitKey(1) & 0xFF == ord('q'):
+    #    break
 
 cap.release()
 cv2.destroyAllWindows()
