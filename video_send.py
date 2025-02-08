@@ -2,57 +2,77 @@ import cv2
 import socket
 import numpy as np
 import struct
+import threading
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
-UDP_PORT = 5005         # Port to send data
+PORT_1 = 5005           # Port for first video stream
+PORT_2 = 5006           # Port for second video stream
 BUFFER_SIZE = 65000     # Max UDP packet size
 
-# Initialize socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# Initialize sockets for two video streams
+sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# Open video capture
-cap = cv2.VideoCapture('/dev/video1')  # Use 0 for webcam, or provide a video file
+# Open two video sources (change these if using files instead)
+cap1 = cv2.VideoCapture('/dev/video1')  # First camera (or replace with "video1.mp4")
+cap2 = cv2.VideoCapture('333 VID_20231011_170120_1.mp4')  # Second camera (or replace with "video2.mp4")
 
-# Set frame size
+# Set frame size for both streams
 WIDTH = 640
 HEIGHT = 480
-cap.set(3, WIDTH)
-cap.set(4, HEIGHT)
+cap1.set(3, WIDTH)
+cap1.set(4, HEIGHT)
+cap2.set(3, WIDTH)
+cap2.set(4, HEIGHT)
 
-try:
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            print("[ERROR] Failed to read frame.")
-            break
 
-        # Encode frame as JPEG
-        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+def stream_video(cap, sock, port, stream_name):
+    """Function to capture and send a video stream over UDP."""
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                print(f"[ERROR] Failed to read frame from {stream_name}.")
+                break
 
-        # Split data into chunks (UDP max packet size is ~65507 bytes)
-        chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
+            # Encode frame as JPEG
+            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
-        try:
-            # Send number of chunks
-            sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, UDP_PORT))
+            # Split data into chunks (UDP max packet size is ~65507 bytes)
+            chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
 
-            # Send each chunk
-            for chunk in chunks:
-                sock.sendto(chunk, (UDP_IP, UDP_PORT))
+            try:
+                # Send number of chunks
+                sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, port))
 
-        except socket.error as e:
-            print(f"[ERROR] Network issue: {e}")
-            break  # Stop sending if network fails
+                # Send each chunk
+                for chunk in chunks:
+                    sock.sendto(chunk, (UDP_IP, port))
 
-except KeyboardInterrupt:
-    print("[INFO] Stream interrupted by user.")
+            except socket.error as e:
+                print(f"[ERROR] Network issue in {stream_name}: {e}")
+                break  # Stop sending if network fails
 
-except Exception as e:
-    print(f"[ERROR] Unexpected error: {e}")
+    except KeyboardInterrupt:
+        print(f"[INFO] {stream_name} stream interrupted by user.")
 
-finally:
-    # Cleanup resources
-    cap.release()
-    sock.close()
-    print("[INFO] Stream closed.")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in {stream_name}: {e}")
+
+    finally:
+        # Cleanup resources
+        cap.release()
+        sock.close()
+        print(f"[INFO] {stream_name} stream closed.")
+
+
+# Start both streams in separate threads
+thread1 = threading.Thread(target=stream_video, args=(cap1, sock1, PORT_1, "Camera 1"))
+thread2 = threading.Thread(target=stream_video, args=(cap2, sock2, PORT_2, "Camera 2"))
+
+thread1.start()
+thread2.start()
+
+thread1.join()
+thread2.join()
