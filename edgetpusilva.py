@@ -73,6 +73,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                         "seg": [s.tolist() for s in seg],
                     }
                     objs_lst.append(obj_data)
+                    print(obj_data)
             
             fps = 1 / elapsed_time if elapsed_time > 0 else 0
             inference_data = json.dumps({"objects": objs_lst, "fps": fps})
