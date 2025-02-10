@@ -8,7 +8,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Load YOLOv8 model
-model = YOLO("best_full_integer_quant_edgetpu.tflite")  # Adjust model path if necessary
+model = YOLO(model="best_full_integer_quant_edgetpu.tflite", task="segment")  # Adjust model path if necessary
 threshold = 0.3  # Confidence threshold
 imgsz = 256  # Image size
 
