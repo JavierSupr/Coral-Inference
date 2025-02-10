@@ -20,8 +20,8 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Set frame size for both streams
-WIDTH = 640
-HEIGHT = 480
+WIDTH = 256
+HEIGHT = 256
 
 def process_segmentation(model_path, input_source, sock, port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
     """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
