@@ -29,8 +29,6 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
-    cap.set(3, WIDTH)
-    cap.set(4, HEIGHT)
 
     # Get FPS from video source
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
@@ -108,7 +106,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         # Ensure correct playback speed by sleeping for remaining time
         elapsed_time = time.time() - start_time
         sleep_time = max(0, frame_delay - elapsed_time)  # Avoid negative sleep time
-        time.sleep(sleep_time)
+        #time.sleep(sleep_time)
 
     cap.release()
     sock.close()
