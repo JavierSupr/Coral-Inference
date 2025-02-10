@@ -1,100 +1,69 @@
 import cv2
+import torch
 import numpy as np
-import time
-import threading
-from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters.common import input_size
+from ultralytics import YOLO
+from flask import Flask, Response, render_template
+from datetime import datetime
 
-# Define class names for segmentation labels
-CLASS_NAMES = {
-    0: "Background", 1: "Aeroplane", 2: "Bicycle", 3: "Bird", 4: "Boat",
-    5: "Bottle", 6: "Bus", 7: "Car", 8: "Cat", 9: "Chair", 10: "Cow",
-    11: "Dining table", 12: "Dog", 13: "Horse", 14: "Motorbike", 15: "Person",
-    16: "Potted plant", 17: "Sheep", 18: "Sofa", 19: "Train", 20: "TV/Monitor"
-}
+app = Flask(__name__)
 
-def preprocess_frame(frame, input_size=(128, 128)):
-    if frame is None or frame.size == 0:
-        return None
-    
-    height, width = frame.shape[:2]
-    scale = min(input_size[0] / width, input_size[1] / height)
-    new_width = min(int(width * scale), input_size[0])
-    new_height = min(int(height * scale), input_size[1])
-    
-    resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
-    canvas = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)
-    
-    y_offset = max(0, (input_size[1] - new_height) // 2)
-    x_offset = max(0, (input_size[0] - new_width) // 2)
-    
-    canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
-    
-    return np.expand_dims(canvas, axis=0)  # Keep raw uint8
+# Load YOLOv8 model
+model = YOLO("best.pt")  # Adjust model path if necessary
+threshold = 0.3  # Confidence threshold
+imgsz = 256  # Image size
 
-def process_video(video_path, model_path, video_id):
-    interpreter = make_interpreter(model_path)
-    interpreter.allocate_tensors()
-    
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    
-    cap = cv2.VideoCapture(video_path)
-    frame_count = 0
-    start_time = time.time()
-    
+video_path = "333-vid-20231011-170120_Tt2GmTrq.mp4"  # Change this to your video file
+cap = cv2.VideoCapture(video_path)
+
+def generate_frames():
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+        
+        # Run inference
+        results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
+        inference_timestamp = datetime.now().strftime("%H:%M:%S.%f")
+        
+        for out in results:
+            masks = out.masks
+            for index, box in enumerate(out.boxes):
+                seg = masks.xy[index]
+                obj_cls, conf, bb = (
+                    int(box.cls.numpy()[0]),
+                    float(box.conf.numpy()[0]),
+                    box.xyxy.numpy()[0],
+                )
+                
+                # Draw bounding box
+                x1, y1, x2, y2 = map(int, bb)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                
+                # Draw segmentation mask
+                seg_points = np.array(seg, dtype=np.int32)
+                cv2.polylines(frame, [seg_points], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.putText(
+                    frame,
+                    f"{model.names[obj_cls]}: {conf:.2f}",
+                    (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 255, 0),
+                    2,
+                )
+        
+        # Encode frame
+        ret, buffer = cv2.imencode(".jpg", frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-        frame_start_time = time.time()
-        processed_frame = preprocess_frame(frame)
-        if processed_frame is None:
-            continue
-        
-        interpreter.set_tensor(input_details[0]['index'], processed_frame)
-        interpreter.invoke()
-        
-        output_data = interpreter.get_tensor(output_details[0]['index'])
-        segmentation_mask = output_data[0]  # Extract mask from batch
-        
-        unique_classes, counts = np.unique(segmentation_mask, return_counts=True)
-        total_pixels = np.sum(counts)
-        
-        detected_classes = []
-        for cls, count in zip(unique_classes, counts):
-            class_name = CLASS_NAMES.get(cls, "Unknown")
-            confidence = count / total_pixels
-            detected_classes.append((class_name, confidence))
-            print(f"[Video {video_id}] Class: {class_name}, Confidence: {confidence:.2f}")
-        
-        frame_end_time = time.time()
-        frame_time = frame_end_time - frame_start_time
-        fps = 1.0 / frame_time
-        print(f"[Video {video_id}] Real-time FPS: {fps:.2f}")
-        
-        frame_count += 1
-    
-    cap.release()
-    end_time = time.time()
-    avg_fps = frame_count / (end_time - start_time)
-    print(f"[Video {video_id}] Processed {frame_count} frames at an average of {avg_fps:.2f} FPS")
+@app.route('/')
+def index():
+    return "<h1>YOLOv8 Video Streaming</h1><img src='/video_feed' width='640px'>"
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
-    model_path = "keras_post_training_unet_mv2_128_quant_edgetpu.tflite"
-    video_paths = [
-        "333-vid-20231011-170120_Tt2GmTrq.mp4",  # Replace with actual path
-        "WIN_20240924_12_35_51_Pro.mp4"   # Replace with actual path
-    ]
-    
-    threads = []
-    for i, video_path in enumerate(video_paths):
-        thread = threading.Thread(target=process_video, args=(video_path, model_path, i+1))
-        threads.append(thread)
-        thread.start()
-    
-    for thread in threads:
-        thread.join()
-    
-    print("Processing of both videos is complete.")
+    app.run(host='0.0.0.0', port=5000, debug=True)
