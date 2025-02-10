@@ -3,6 +3,7 @@ import socket
 import numpy as np
 import struct
 import threading
+import time
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
@@ -26,11 +27,18 @@ cap1.set(4, HEIGHT)
 cap2.set(3, WIDTH)
 cap2.set(4, HEIGHT)
 
+# Get frame rate of video
+fps1 = cap1.get(cv2.CAP_PROP_FPS) or 30  # Default to 30 FPS if unavailable
+fps2 = cap2.get(cv2.CAP_PROP_FPS) or 30
 
-def stream_video(cap, sock, port, stream_name):
+def stream_video(cap, sock, port, stream_name, fps):
     """Function to capture and send a video stream over UDP."""
+    frame_delay = 1.0 / fps  # Calculate delay per frame
+
     try:
         while cap.isOpened():
+            start_time = time.time()  # Track time at start of frame capture
+
             ret, frame = cap.read()
             if not ret:
                 print(f"[ERROR] Failed to read frame from {stream_name}.")
@@ -54,6 +62,11 @@ def stream_video(cap, sock, port, stream_name):
                 print(f"[ERROR] Network issue in {stream_name}: {e}")
                 break  # Stop sending if network fails
 
+            # Ensure correct playback speed by sleeping for remaining time
+            elapsed_time = time.time() - start_time
+            sleep_time = max(0, frame_delay - elapsed_time)  # Avoid negative sleep time
+            time.sleep(sleep_time)
+
     except KeyboardInterrupt:
         print(f"[INFO] {stream_name} stream interrupted by user.")
 
@@ -68,8 +81,8 @@ def stream_video(cap, sock, port, stream_name):
 
 
 # Start both streams in separate threads
-thread1 = threading.Thread(target=stream_video, args=(cap1, sock1, PORT_1, "Camera 1"))
-thread2 = threading.Thread(target=stream_video, args=(cap2, sock2, PORT_2, "Camera 2"))
+thread1 = threading.Thread(target=stream_video, args=(cap1, sock1, PORT_1, "Camera 1", fps1))
+thread2 = threading.Thread(target=stream_video, args=(cap2, sock2, PORT_2, "Camera 2", fps2))
 
 thread1.start()
 thread2.start()
