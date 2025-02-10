@@ -15,7 +15,7 @@ sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Open two video sources (change these if using files instead)
-cap1 = cv2.VideoCapture('/dev/video1')  # First camera (or replace with "video1.mp4")
+cap1 = cv2.VideoCapture('333 VID_20231011_170120_1.mp4')  # First camera (or replace with "video1.mp4")
 cap2 = cv2.VideoCapture('333 VID_20231011_170120_1.mp4')  # Second camera (or replace with "video2.mp4")
 
 # Set frame size for both streams
