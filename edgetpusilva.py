@@ -28,8 +28,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
-    cap.set(3, WIDTH)
-    cap.set(4, HEIGHT)
+
 
     # Get FPS from video source
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
@@ -116,5 +115,5 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_full_integer_quant_edgetpu.tflite"
     cam1_source = "333 VID_20231011_170120_1.mp4"
-    cam2_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
+    cam2_source = "333 VID_20231011_170120_1.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
