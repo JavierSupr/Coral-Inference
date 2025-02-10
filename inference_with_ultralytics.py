@@ -26,9 +26,7 @@ def generate_frames():
         inference_timestamp = datetime.now().strftime("%H:%M:%S.%f")
         
         for out in results:
-            masks = out.masks
-            for index, box in enumerate(out.boxes):
-                seg = masks.xy[index]
+            for box in out.boxes:
                 obj_cls, conf, bb = (
                     int(box.cls.numpy()[0]),
                     float(box.conf.numpy()[0]),
@@ -38,10 +36,6 @@ def generate_frames():
                 # Draw bounding box
                 x1, y1, x2, y2 = map(int, bb)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                
-                # Draw segmentation mask
-                seg_points = np.array(seg, dtype=np.int32)
-                cv2.polylines(frame, [seg_points], isClosed=True, color=(0, 255, 255), thickness=2)
                 cv2.putText(
                     frame,
                     f"{model.names[obj_cls]}: {conf:.2f}",
