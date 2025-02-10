@@ -6,6 +6,7 @@ import numpy as np
 import struct
 import json
 from ultralytics import YOLO
+from datetime import datetime
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
@@ -20,15 +21,16 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Set frame size for both streams
-WIDTH = 256
-HEIGHT = 256
+WIDTH = 640
+HEIGHT = 480
 
 def process_segmentation(model_path, input_source, sock, port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
     """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
-
+    cap.set(3, WIDTH)
+    cap.set(4, HEIGHT)
 
     # Get FPS from video source
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
@@ -37,14 +39,17 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
     prev_time = time.time()
 
     while cap.isOpened():
-        start_time = time.time()  # Track start time for frame processing
+        start_time = time.time()  # Start time of frame processing
+        frame_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture frame timestamp
         
         ret, frame = cap.read()
         if not ret:
             break  # End of stream
         
+        # Run YOLO segmentation
         results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
-        
+        inference_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture inference timestamp
+
         objs_lst = []
         for out in results:
             masks = out.masks
@@ -64,11 +69,22 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                     "seg": [s.tolist() for s in seg],
                 }
                 objs_lst.append(obj_data)
-        
+
         fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
         prev_time = time.time()
-        
-        inference_data = json.dumps({"objects": objs_lst, "fps": fps})
+
+        # Print timestamps for comparison
+        print(f"\n[{stream_name}] Frame Captured: {frame_timestamp}")
+        print(f"[{stream_name}] Inference Completed: {inference_timestamp}")
+        print(f"[{stream_name}] Time Difference: {time.time() - start_time:.3f} seconds")
+
+        # Send inference results with timestamps
+        inference_data = json.dumps({
+            "objects": objs_lst,
+            "fps": fps,
+            "frame_time": frame_timestamp,
+            "inference_time": inference_timestamp
+        })
         results_sock.sendto(inference_data.encode(), (UDP_IP, RESULTS_PORT))
 
         # Encode frame as JPEG
@@ -115,5 +131,5 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_full_integer_quant_edgetpu.tflite"
     cam1_source = "333 VID_20231011_170120_1.mp4"
-    cam2_source = "333 VID_20231011_170120_1.mp4"
+    cam2_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
