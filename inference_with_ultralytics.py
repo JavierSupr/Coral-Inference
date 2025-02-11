@@ -32,7 +32,7 @@ def generate_frames():
                     float(box.conf.numpy()[0]),
                     box.xyxy.numpy()[0],
                 )
-                
+                print(bb)
                 # Draw bounding box
                 x1, y1, x2, y2 = map(int, bb)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)

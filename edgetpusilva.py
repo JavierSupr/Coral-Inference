@@ -54,8 +54,8 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
             for index, box in enumerate(out.boxes):
                 seg = masks.xy[index]
                 obj_cls, conf, bb = (
-                    box.cls.numpy()[0],
-                    box.conf.numpy()[0],
+                    int(box.cls.numpy()[0]),
+                    float(box.conf.numpy()[0]),
                     box.xyxy.numpy()[0],
                 )
                 label = out.names[int(obj_cls)]
