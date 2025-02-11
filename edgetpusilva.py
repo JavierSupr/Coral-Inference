@@ -68,6 +68,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                     box.conf.numpy()[0],
                     box.xyxy.numpy()[0],
                 )
+                print(bb)
                 label = out.names[int(obj_cls)]
                 obj_data = {
                     "id": int(obj_cls),
