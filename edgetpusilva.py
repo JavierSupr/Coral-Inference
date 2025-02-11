@@ -6,6 +6,7 @@ import numpy as np
 import struct
 import json
 from ultralytics import YOLO
+import queue
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
@@ -64,8 +65,9 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
     frame_delay = 1.0 / fps_source  # Time delay per frame
     
-    frame_queue = threading.Queue(maxsize=5)
-    results_queue = threading.Queue(maxsize=5)
+    frame_queue = queue.Queue(maxsize=5)
+    results_queue = queue.Queue(maxsize=5)
+
 
     # Start inference thread
     inference_thread = threading.Thread(target=inference_worker, args=(model, frame_queue, results_queue, threshold, imgsz))
