@@ -69,8 +69,8 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                 print(obj_data)
                 objs_lst.append(obj_data)
 
-        fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
-        prev_time = time.time()
+        #fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
+        #prev_time = time.time()
 
         # Print timestamps for comparison
         #print(f"\n[{stream_name}] Frame Captured: {frame_timestamp}")
@@ -80,7 +80,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         # Send inference results with timestamps
         inference_data = json.dumps({
             "objects": objs_lst,
-            "fps": fps,
+            
         })
         results_sock.sendto(inference_data.encode(), (UDP_IP, RESULTS_PORT))
 
