@@ -66,7 +66,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                     "bbox": bb.tolist(),
                     "seg": [s.tolist() for s in seg],
                 }
-                print(obj_data)
+                print(bb)
                 objs_lst.append(obj_data)
 
         #fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
