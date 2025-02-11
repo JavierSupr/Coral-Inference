@@ -31,14 +31,14 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
     cap = cv2.VideoCapture(input_source)
 
     # Get FPS from video source
-    fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
-    frame_delay = 1.0 / fps_source  # Time delay per frame
+    #fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
+    #frame_delay = 1.0 / fps_source  # Time delay per frame
     
-    prev_time = time.time()
+    #prev_time = time.time()
 
     while cap.isOpened():
-        start_time = time.time()  # Start time of frame processing
-        frame_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture frame timestamp
+        #start_time = time.time()  # Start time of frame processing
+        #frame_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture frame timestamp
         
         ret, frame = cap.read()
         if not ret:
@@ -46,7 +46,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         
         # Run YOLO segmentation
         results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
-        inference_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture inference timestamp
+        #inference_timestamp = datetime.now().strftime("%H:%M:%S.%f")  # Capture inference timestamp
 
         objs_lst = []
         for out in results:
@@ -66,6 +66,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                     "bbox": bb.tolist(),
                     "seg": [s.tolist() for s in seg],
                 }
+                print(obj_data)
                 objs_lst.append(obj_data)
 
         fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
