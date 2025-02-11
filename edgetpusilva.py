@@ -85,22 +85,22 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         results_sock.sendto(inference_data.encode(), (UDP_IP, RESULTS_PORT))
 
         # Encode frame as JPEG
-        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-
-        # Split data into chunks (UDP max packet size is ~65507 bytes)
-        chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
-
-        try:
-            # Send number of chunks
-            sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, port))
-            
-            # Send each chunk
-            for chunk in chunks:
-                sock.sendto(chunk, (UDP_IP, port))
-
-        except socket.error as e:
-            print(f"[ERROR] Network issue in {stream_name}: {e}")
-            break  # Stop sending if network fails
+        #_, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+#
+        ## Split data into chunks (UDP max packet size is ~65507 bytes)
+        #chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
+#
+        #try:
+        #    # Send number of chunks
+        #    sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, port))
+        #    
+        #    # Send each chunk
+        #    for chunk in chunks:
+        #        sock.sendto(chunk, (UDP_IP, port))
+#
+        #except socket.error as e:
+        #    print(f"[ERROR] Network issue in {stream_name}: {e}")
+        #    break  # Stop sending if network fails
 
         # Ensure correct playback speed by sleeping for remaining time
         #elapsed_time = time.time() - start_time
