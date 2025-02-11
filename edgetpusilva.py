@@ -41,6 +41,7 @@ def inference_worker(model, frame_queue, results_queue, threshold=0.4, imgsz=256
                         box.conf.numpy()[0],
                         box.xyxy.numpy()[0],
                     )
+                    print(bb)
                     label = out.names[int(obj_cls)]
                     obj_data = {
                         "id": int(obj_cls),
