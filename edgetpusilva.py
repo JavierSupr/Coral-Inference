@@ -73,16 +73,14 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         prev_time = time.time()
 
         # Print timestamps for comparison
-        print(f"\n[{stream_name}] Frame Captured: {frame_timestamp}")
-        print(f"[{stream_name}] Inference Completed: {inference_timestamp}")
-        print(f"[{stream_name}] Time Difference: {time.time() - start_time:.3f} seconds")
+        #print(f"\n[{stream_name}] Frame Captured: {frame_timestamp}")
+        #print(f"[{stream_name}] Inference Completed: {inference_timestamp}")
+        #print(f"[{stream_name}] Time Difference: {time.time() - start_time:.3f} seconds")
 
         # Send inference results with timestamps
         inference_data = json.dumps({
             "objects": objs_lst,
             "fps": fps,
-            "frame_time": frame_timestamp,
-            "inference_time": inference_timestamp
         })
         results_sock.sendto(inference_data.encode(), (UDP_IP, RESULTS_PORT))
 
@@ -105,8 +103,8 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
             break  # Stop sending if network fails
 
         # Ensure correct playback speed by sleeping for remaining time
-        elapsed_time = time.time() - start_time
-        sleep_time = max(0, frame_delay - elapsed_time)  # Avoid negative sleep time
+        #elapsed_time = time.time() - start_time
+        #sleep_time = max(0, frame_delay - elapsed_time)  # Avoid negative sleep time
         #time.sleep(sleep_time)
 
     cap.release()
