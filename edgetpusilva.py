@@ -5,7 +5,6 @@ import socket
 import numpy as np
 import struct
 import json
-from queue import Queue
 from ultralytics import YOLO
 
 # UDP Socket configuration
@@ -24,67 +23,76 @@ results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 WIDTH = 640
 HEIGHT = 480
 
-# Queue to store inference results
-inference_queue = Queue()
-
-def send_inference_results():
-    """Handles sending inference results asynchronously."""
+def inference_worker(model, frame_queue, results_queue, threshold=0.4, imgsz=256):
+    """Background thread that runs YOLO inference asynchronously."""
     while True:
-        if not inference_queue.empty():
-            data = inference_queue.get()
-            try:
-                results_sock.sendto(data.encode(), (UDP_IP, RESULTS_PORT))
-            except socket.error as e:
-                print(f"[ERROR] Failed to send inference data: {e}")
-        time.sleep(0.01)  # Small delay to prevent CPU overload
+        if not frame_queue.empty():
+            frame, timestamp = frame_queue.get()
+            results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
+
+            objs_lst = []
+            for out in results:
+                masks = out.masks
+                for index, box in enumerate(out.boxes):
+                    seg = masks.xy[index]
+                    obj_cls, conf, bb = (
+                        box.cls.numpy()[0],
+                        box.conf.numpy()[0],
+                        box.xyxy.numpy()[0],
+                    )
+                    label = out.names[int(obj_cls)]
+                    obj_data = {
+                        "id": int(obj_cls),
+                        "label": label,
+                        "conf": float(conf),
+                        "bbox": bb.tolist(),
+                        "seg": [s.tolist() for s in seg],
+                    }
+                    objs_lst.append(obj_data)
+            
+            # Store inference results with timestamp
+            results_queue.put({"objects": objs_lst, "timestamp": timestamp})
 
 def process_segmentation(model_path, input_source, sock, port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
-    """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
-
+    """Runs YOLO segmentation asynchronously while streaming video over UDP."""
+    
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
-    # Get FPS from video source
+    cap.set(3, WIDTH)
+    cap.set(4, HEIGHT)
+
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
     frame_delay = 1.0 / fps_source  # Time delay per frame
+    
+    frame_queue = threading.Queue(maxsize=5)
+    results_queue = threading.Queue(maxsize=5)
+
+    # Start inference thread
+    inference_thread = threading.Thread(target=inference_worker, args=(model, frame_queue, results_queue, threshold, imgsz))
+    inference_thread.daemon = True
+    inference_thread.start()
 
     prev_time = time.time()
 
     while cap.isOpened():
         start_time = time.time()  # Track start time for frame processing
-
+        
         ret, frame = cap.read()
         if not ret:
             break  # End of stream
+        
+        # Send frame to inference queue
+        if frame_queue.qsize() < 5:  # Prevent overloading
+            frame_queue.put((frame.copy(), time.time()))
 
-        results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
+        # Fetch inference results if available
+        if not results_queue.empty():
+            inference_data = results_queue.get()
+            inference_data["fps"] = 1 / (time.time() - prev_time) if prev_time > 0 else 0
+            prev_time = time.time()
 
-        objs_lst = []
-        for out in results:
-            masks = out.masks
-            for index, box in enumerate(out.boxes):
-                seg = masks.xy[index]
-                obj_cls, conf, bb = (
-                    box.cls.numpy()[0],
-                    box.conf.numpy()[0],
-                    box.xyxy.numpy()[0],
-                )
-                print(bb)
-                label = out.names[int(obj_cls)]
-                obj_data = {
-                    "id": int(obj_cls),
-                    "label": label,
-                    "conf": float(conf),
-                    "bbox": bb.tolist(),
-                    "seg": [s.tolist() for s in seg],
-                }
-                objs_lst.append(obj_data)
-
-        fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
-        prev_time = time.time()
-
-        # Prepare inference result for sending in a separate thread
-        inference_data = json.dumps({"objects": objs_lst, "fps": fps})
-        inference_queue.put(inference_data)  # Add to queue for asynchronous sending
+            # Send inference data over UDP
+            results_sock.sendto(json.dumps(inference_data).encode(), (UDP_IP, RESULTS_PORT))
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
@@ -95,7 +103,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         try:
             # Send number of chunks
             sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, port))
-
+            
             # Send each chunk
             for chunk in chunks:
                 sock.sendto(chunk, (UDP_IP, port))
@@ -115,10 +123,6 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
 
 def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     """Runs YOLO segmentation on two cameras in parallel and streams video."""
-    
-    # Start separate thread for sending inference results
-    results_thread = threading.Thread(target=send_inference_results, daemon=True)
-    results_thread.start()
 
     thread1 = threading.Thread(target=process_segmentation, args=(model_path, cam1_source, sock1, PORT_1, "Camera 1"))
     thread2 = threading.Thread(target=process_segmentation, args=(model_path, cam2_source, sock2, PORT_2, "Camera 2"))
