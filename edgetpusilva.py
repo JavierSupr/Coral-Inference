@@ -22,7 +22,6 @@ results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Set frame size for both streams
 WIDTH = 640
 HEIGHT = 480
-
 def process_segmentation(model_path, input_source, sock, port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
     """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
     
@@ -58,6 +57,7 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
                 )
                 label = out.names[int(obj_cls)]
                 obj_data = {
+                    "camera": stream_name,  # Add camera name
                     "id": int(obj_cls),
                     "label": label,
                     "conf": float(conf),
@@ -103,13 +103,13 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     """Runs YOLO segmentation on two cameras in parallel and streams video."""
 
     thread1 = threading.Thread(target=process_segmentation, args=(model_path, cam1_source, sock1, PORT_1, "Camera 1"))
-    thread2 = threading.Thread(target=process_segmentation, args=(model_path, cam2_source, sock2, PORT_2, "Camera 2"))
+    #thread2 = threading.Thread(target=process_segmentation, args=(model_path, cam2_source, sock2, PORT_2, "Camera 2"))
 
     thread1.start()
-    thread2.start()
+    #thread2.start()
 
     thread1.join()
-    thread2.join()
+    #thread2.join()
 
     print("Inference and streaming completed for both cameras.")
 
