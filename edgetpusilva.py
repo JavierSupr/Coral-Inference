@@ -6,7 +6,6 @@ import numpy as np
 import struct
 import json
 from ultralytics import YOLO
-import queue
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
@@ -24,57 +23,18 @@ results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 WIDTH = 640
 HEIGHT = 480
 
-def inference_worker(model, frame_queue, results_queue, threshold=0.4, imgsz=256):
-    """Background thread that runs YOLO inference asynchronously."""
-    while True:
-        if not frame_queue.empty():
-            frame, timestamp = frame_queue.get()
-            results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
-
-            objs_lst = []
-            for out in results:
-                masks = out.masks
-                for index, box in enumerate(out.boxes):
-                    seg = masks.xy[index]
-                    obj_cls, conf, bb = (
-                        box.cls.numpy()[0],
-                        box.conf.numpy()[0],
-                        box.xyxy.numpy()[0],
-                    )
-                    print(bb)
-                    label = out.names[int(obj_cls)]
-                    obj_data = {
-                        "id": int(obj_cls),
-                        "label": label,
-                        "conf": float(conf),
-                        "bbox": bb.tolist(),
-                        "seg": [s.tolist() for s in seg],
-                    }
-                    objs_lst.append(obj_data)
-            
-            # Store inference results with timestamp
-            results_queue.put({"objects": objs_lst, "timestamp": timestamp})
-
 def process_segmentation(model_path, input_source, sock, port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
-    """Runs YOLO segmentation asynchronously while streaming video over UDP."""
+    """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
     cap.set(3, WIDTH)
     cap.set(4, HEIGHT)
 
+    # Get FPS from video source
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
     frame_delay = 1.0 / fps_source  # Time delay per frame
     
-    frame_queue = queue.Queue(maxsize=5)
-    results_queue = queue.Queue(maxsize=5)
-
-
-    # Start inference thread
-    inference_thread = threading.Thread(target=inference_worker, args=(model, frame_queue, results_queue, threshold, imgsz))
-    inference_thread.daemon = True
-    inference_thread.start()
-
     prev_time = time.time()
 
     while cap.isOpened():
@@ -84,18 +44,33 @@ def process_segmentation(model_path, input_source, sock, port, stream_name, imgs
         if not ret:
             break  # End of stream
         
-        # Send frame to inference queue
-        if frame_queue.qsize() < 5:  # Prevent overloading
-            frame_queue.put((frame.copy(), time.time()))
-
-        # Fetch inference results if available
-        if not results_queue.empty():
-            inference_data = results_queue.get()
-            inference_data["fps"] = 1 / (time.time() - prev_time) if prev_time > 0 else 0
-            prev_time = time.time()
-
-            # Send inference data over UDP
-            results_sock.sendto(json.dumps(inference_data).encode(), (UDP_IP, RESULTS_PORT))
+        results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
+        
+        objs_lst = []
+        for out in results:
+            masks = out.masks
+            for index, box in enumerate(out.boxes):
+                seg = masks.xy[index]
+                obj_cls, conf, bb = (
+                    box.cls.numpy()[0],
+                    box.conf.numpy()[0],
+                    box.xyxy.numpy()[0],
+                )
+                label = out.names[int(obj_cls)]
+                obj_data = {
+                    "id": int(obj_cls),
+                    "label": label,
+                    "conf": float(conf),
+                    "bbox": bb.tolist(),
+                    "seg": [s.tolist() for s in seg],
+                }
+                objs_lst.append(obj_data)
+        
+        fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
+        prev_time = time.time()
+        
+        inference_data = json.dumps({"objects": objs_lst, "fps": fps})
+        results_sock.sendto(inference_data.encode(), (UDP_IP, RESULTS_PORT))
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
