@@ -9,10 +9,10 @@ from ultralytics import YOLO
 
 # UDP Socket configuration
 UDP_IP = "192.168.137.1"  # Replace with receiver's IP address
-PORT_1 = 5005            # Port for first video stream
-PORT_2 = 5006            # Port for second video stream
-RESULTS_PORT_1 = 5007    # Port for inference results from Camera 1
-RESULTS_PORT_2 = 5008    # Port for inference results from Camera 2
+PORT_1 = 5010            # Port for first video stream
+PORT_2 = 5011            # Port for second video stream
+RESULTS_PORT_1 = 5012    # Port for inference results from Camera 1
+RESULTS_PORT_2 = 5013    # Port for inference results from Camera 2
 BUFFER_SIZE = 65000      # Max UDP packet size
 
 # Initialize sockets for video streams and results
@@ -119,6 +119,6 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
 
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_full_integer_quant_edgetpu.tflite"
-    cam1_source = "333 VID_20231011_170120_1.mp4"
+    cam1_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
     cam2_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
