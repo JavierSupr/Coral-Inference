@@ -21,9 +21,6 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# Set frame size for both streams
-
-
 def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
     """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
     
@@ -68,6 +65,8 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
         
         fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
         prev_time = time.time()
+        
+        print(f"[INFO] {stream_name} - FPS: {fps:.2f}")  # Print FPS for monitoring
         
         inference_data = json.dumps({"objects": objs_lst, "fps": fps})
         results_sock.sendto(inference_data.encode(), (UDP_IP, results_port))
