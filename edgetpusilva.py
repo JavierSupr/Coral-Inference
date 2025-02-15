@@ -22,23 +22,24 @@ results_sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
-    """Runs YOLO segmentation on a camera stream with dynamic frame delay to maintain correct FPS."""
+    """Runs YOLO segmentation on a camera stream with unique frame identifier."""
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
 
-    # Get FPS from video source
-    fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  # Use target FPS if source FPS is unknown
-    frame_delay = 1.0 / fps_source  # Time delay per frame
-    
+    fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  
+    frame_delay = 1.0 / fps_source  
+
     prev_time = time.time()
+    frame_id = 0  # Unique identifier for each frame
 
     while cap.isOpened():
-        start_time = time.time()  # Track start time for frame processing
+        start_time = time.time()
+        frame_id += 1  # Increment frame ID on each loop
         
         ret, frame = cap.read()
         if not ret:
-            break  # End of stream
+            break
         
         results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
         
@@ -54,7 +55,8 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
                 )
                 label = out.names[int(obj_cls)]
                 obj_data = {
-                    "camera": stream_name,  # Add camera name
+                    "frame_id": frame_id,  # Include frame_id in inference results
+                    "camera": stream_name,
                     "id": int(obj_cls),
                     "label": label,
                     "conf": float(conf),
@@ -62,41 +64,45 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
                     "seg": [s.tolist() for s in seg],
                 }
                 objs_lst.append(obj_data)
-        
+
         fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
         prev_time = time.time()
         
-        print(f"[INFO] {stream_name} - FPS: {fps:.2f}")  # Print FPS for monitoring
-        
-        inference_data = json.dumps({"objects": objs_lst, "fps": fps})
+        print(f"[INFO] {stream_name} - Frame ID: {frame_id} - FPS: {fps:.2f}")
+
+        # Send inference results with frame_id
+        inference_data = json.dumps({"frame_id": frame_id, "objects": objs_lst, "fps": fps})
         results_sock.sendto(inference_data.encode(), (UDP_IP, results_port))
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
-        # Split data into chunks (UDP max packet size is ~65507 bytes)
+        # Split data into chunks
         chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
 
         try:
+            # Send frame_id first (as a 4-byte integer)
+            sock.sendto(struct.pack("I", frame_id), (UDP_IP, video_port))  # Send frame ID
+            
             # Send number of chunks
             sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
-            
+
             # Send each chunk
             for chunk in chunks:
                 sock.sendto(chunk, (UDP_IP, video_port))
 
         except socket.error as e:
             print(f"[ERROR] Network issue in {stream_name}: {e}")
-            break  # Stop sending if network fails
+            break  
 
-        # Ensure correct playback speed by sleeping for remaining time
         elapsed_time = time.time() - start_time
-        sleep_time = max(0, frame_delay - elapsed_time)  # Avoid negative sleep time
+        sleep_time = max(0, frame_delay - elapsed_time)  
         time.sleep(sleep_time)
 
     cap.release()
     sock.close()
     print(f"[INFO] {stream_name} stream closed.")
+
 
 def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     """Runs YOLO segmentation on two cameras in parallel and streams video."""
