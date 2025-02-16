@@ -1,6 +1,6 @@
 import cv2
 import time
-import threading
+import multiprocessing
 import socket
 import numpy as np
 import struct
@@ -15,17 +15,14 @@ RESULTS_PORT_1 = 5012    # Port for inference results from Camera 1
 RESULTS_PORT_2 = 5013    # Port for inference results from Camera 2
 BUFFER_SIZE = 65000      # Max UDP packet size
 
-# Initialize sockets for video streams and results
-sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-results_sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-results_sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
+def process_segmentation(model_path, input_source, video_port, results_port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
     """Runs YOLO segmentation on a camera stream with unique frame identifier."""
     
     model = YOLO(model=model_path, task="segment")
     cap = cv2.VideoCapture(input_source)
+    
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     fps_source = cap.get(cv2.CAP_PROP_FPS) or fps_target  
     frame_delay = 1.0 / fps_source  
@@ -101,29 +98,32 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
 
     cap.release()
     sock.close()
+    results_sock.close()
     print(f"[INFO] {stream_name} stream closed.")
 
-
 def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
-    """Runs YOLO segmentation on two cameras in parallel and streams video."""
-
-    thread1 = threading.Thread(target=process_segmentation, args=(
-        model_path, cam1_source, sock1, PORT_1, results_sock1, RESULTS_PORT_1, "Camera 1"
+    """Runs YOLO segmentation on two cameras in parallel using multiprocessing."""
+    
+    process1 = multiprocessing.Process(target=process_segmentation, args=(
+        model_path, cam1_source, PORT_1, RESULTS_PORT_1, "Camera 1"
     ))
-    thread2 = threading.Thread(target=process_segmentation, args=(
-        model_path, cam2_source, sock2, PORT_2, results_sock2, RESULTS_PORT_2, "Camera 2"
+    process2 = multiprocessing.Process(target=process_segmentation, args=(
+        model_path, cam2_source, PORT_2, RESULTS_PORT_2, "Camera 2"
     ))
 
-    thread1.start()
-    thread2.start()
+    process1.start()
+    process2.start()
 
-    thread1.join()
-    thread2.join()
+    process1.join()
+    process2.join()
 
     print("Inference and streaming completed for both cameras.")
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")  # Ensure compatibility across platforms
+    
     YOLO_MODEL_PATH = "best_full_integer_quant_edgetpu.tflite"
     cam1_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
     cam2_source = "333-vid-20231011-170120_Tt2GmTrq.mp4"
+    
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
