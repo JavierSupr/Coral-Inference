@@ -47,7 +47,9 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
         for out in results:
             masks = out.masks
             for index, box in enumerate(out.boxes):
-                seg = masks.xy[index]
+                seg = masks.data[index].numpy()  # Convert segmentation mask to NumPy array
+                binary_mask = np.where(seg > 0, 1, 0).tolist()  # Convert to binary (0,1)
+                
                 obj_cls, conf, bb = (
                     box.cls.numpy()[0],
                     box.conf.numpy()[0],
@@ -61,9 +63,10 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
                     "label": label,
                     "conf": float(conf),
                     "bbox": bb.tolist(),
-                    "seg": [s.tolist() for s in seg],
+                    "seg": binary_mask,  # Store binary mask instead of raw segmentation
                 }
                 objs_lst.append(obj_data)
+        
 
         fps = 1 / (time.time() - prev_time) if prev_time > 0 else 0
         prev_time = time.time()
