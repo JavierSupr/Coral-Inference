@@ -6,7 +6,7 @@ from flask import Flask, Response, render_template
 from ultralytics import YOLO
 
 # Load YOLOv8 model
-model = YOLO("best_full_integer_quant_edgetpu.tflite")  # Replace with your trained model
+model = YOLO("best_full_integer_quant_edgetpu.tflite", task= 'segment')  # Replace with your trained model
 
 # Flask app
 app = Flask(__name__)
