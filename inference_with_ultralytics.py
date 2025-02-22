@@ -34,7 +34,7 @@ def generate_frames():
         prev_time = curr_time
 
         # Run YOLOv8 inference
-        results = model.predict(frame, conf=CONF_THRESHOLD, imgsz=IMGSZ, verbose=False)
+        results = model.predict(frame, conf=CONF_THRESHOLD, iou = 0.5, imgz = IMGSZ, verbose=False)
 
         for out in results:
             masks = out.masks
