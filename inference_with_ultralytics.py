@@ -39,7 +39,7 @@ def generate_frames():
         prev_time = curr_time
 
         # Run YOLOv8 inference
-        results = model.predict(frame, conf=CONF_THRESHOLD, iou=0.3, imgsz=IMGSZ, verbose=False)
+        results = model.predict(frame, conf=CONF_THRESHOLD, iou=0.3, imgsz=IMGSZ, verbose=False, stream=True)
 
         for out in results:
             masks = out.masks
