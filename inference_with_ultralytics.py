@@ -17,7 +17,7 @@ cap = cv2.VideoCapture(VIDEO_SOURCE)
 
 # Threshold and image size
 CONF_THRESHOLD = 0.3
-IMGSZ = 640
+IMGSZ = 256
 
 
 def generate_frames():
