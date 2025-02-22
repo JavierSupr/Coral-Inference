@@ -71,9 +71,9 @@ def generate_frames():
                 )
 
                 # Draw segmentation mask (if available)
-                if seg is not None:
-                    seg = np.array(seg, np.int32)
-                    cv2.polylines(frame, [seg], isClosed=True, color=box_color, thickness=2)
+                #if seg is not None:
+                #    seg = np.array(seg, np.int32)
+                #   cv2.polylines(frame, [seg], isClosed=True, color=box_color, thickness=2)
 
         # Draw FPS counter
         fps_text = f"FPS: {fps:.2f}"
