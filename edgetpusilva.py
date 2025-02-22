@@ -21,7 +21,7 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.4, fps_target=30):
+def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.65, fps_target=30):
     """Runs YOLO segmentation on a camera stream with unique frame identifier."""
     
     model = YOLO(model=model_path, task="segment")
@@ -41,7 +41,7 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
         if not ret:
             break
         
-        results = model.predict(frame, conf=threshold, imgsz=imgsz, verbose=False)
+        results = model.predict(frame, conf=threshold, iou=0.2, imgsz=imgsz, verbose=False)
         
         objs_lst = []
         for out in results:
