@@ -16,7 +16,7 @@ VIDEO_SOURCE = "333-vid-20231011-170120_Tt2GmTrq.mp4"
 cap = cv2.VideoCapture(VIDEO_SOURCE)
 
 # Threshold and image size
-CONF_THRESHOLD = 0.3
+CONF_THRESHOLD = 0.5
 IMGSZ = 256
 
 CLASS_COLORS = {
