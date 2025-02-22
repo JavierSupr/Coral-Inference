@@ -12,7 +12,7 @@ model = YOLO("best_full_integer_quant_edgetpu.tflite", task= 'segment')  # Repla
 app = Flask(__name__)
 
 # Video source (use 0 for webcam or replace with video file path)
-VIDEO_SOURCE = "C:/Users/javie/Documents/Kuliah/Semester 7/Penulisan Ilmiah/Coba coba/Coral Dev Board/333-vid-20231011-170120_Tt2GmTrq.mp4"
+VIDEO_SOURCE = "333-vid-20231011-170120_Tt2GmTrq.mp4"
 cap = cv2.VideoCapture(VIDEO_SOURCE)
 
 # Threshold and image size
@@ -78,6 +78,7 @@ def generate_frames():
         yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
 
 
+
 @app.route("/")
 def index():
     """Video streaming home page."""
@@ -88,7 +89,7 @@ def index():
 def video_feed():
     """Video streaming route."""
     return Response(generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
-
+    return Response(generate_frames(args.video), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
