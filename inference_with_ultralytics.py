@@ -35,7 +35,6 @@ def generate_frames():
 
         # Run YOLOv8 inference
         results = model.predict(frame, conf=CONF_THRESHOLD, iou = 0.5, imgz = IMGSZ, verbose=False)
-
         for out in results:
             masks = out.masks
             for index, box in enumerate(out.boxes):
