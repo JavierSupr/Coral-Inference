@@ -19,6 +19,11 @@ cap = cv2.VideoCapture(VIDEO_SOURCE)
 CONF_THRESHOLD = 0.3
 IMGSZ = 256
 
+CLASS_COLORS = {
+    0: (0, 255, 0),    # Green
+    1: (255, 0, 0),    # Blue
+    2: (0, 0, 255)     # Red
+}
 
 def generate_frames():
     prev_time = time.time()
@@ -34,7 +39,8 @@ def generate_frames():
         prev_time = curr_time
 
         # Run YOLOv8 inference
-        results = model.predict(frame, conf=CONF_THRESHOLD, iou = 0.5, imgsz = IMGSZ, verbose=False)
+        results = model.predict(frame, conf=CONF_THRESHOLD, iou=0.5, imgsz=IMGSZ, verbose=False)
+
         for out in results:
             masks = out.masks
             for index, box in enumerate(out.boxes):
@@ -45,9 +51,12 @@ def generate_frames():
                     box.xyxy.numpy()[0],
                 )
 
+                # Get class-specific color (default to white if class not found)
+                box_color = CLASS_COLORS.get(obj_cls, (255, 255, 255))
+
                 # Draw bounding box
                 x1, y1, x2, y2 = map(int, bb)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
 
                 # Draw label
                 label = f"ID: {obj_cls} ({conf:.2f})"
@@ -57,14 +66,14 @@ def generate_frames():
                     (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
-                    (0, 255, 0),
+                    box_color,
                     2,
                 )
 
                 # Draw segmentation mask (if available)
                 if seg is not None:
                     seg = np.array(seg, np.int32)
-                    cv2.polylines(frame, [seg], isClosed=True, color=(0, 0, 255), thickness=2)
+                    cv2.polylines(frame, [seg], isClosed=True, color=box_color, thickness=2)
 
         # Draw FPS counter
         fps_text = f"FPS: {fps:.2f}"
