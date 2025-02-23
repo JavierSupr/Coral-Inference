@@ -21,7 +21,7 @@ sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 results_sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=256, threshold=0.3, fps_target=30):
+def process_segmentation(model_path, input_source, sock, video_port, results_sock, results_port, stream_name, imgsz=192, threshold=0.3, fps_target=30):
     """Runs YOLO segmentation on a camera stream with unique frame identifier."""
     
     model = YOLO(model=model_path, task="segment")
@@ -123,7 +123,7 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     print("Inference and streaming completed for both cameras.")
 
 if __name__ == "__main__":
-    YOLO_MODEL_PATH = "best_full_integer_quant_edgetpu.tflite"
+    YOLO_MODEL_PATH = "192_yolov8n-seg_full_integer_quant_edgetpu (1).tflite"
     cam1_source = "Camera 1.mp4"
     cam2_source = "Camera 2.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
