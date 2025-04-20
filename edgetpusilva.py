@@ -142,10 +142,10 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     ))
 
     thread1.start()
-    thread2.start()
+    #thread2.start()
 
     thread1.join()
-    thread2.join()
+    #thread2.join()
 
     print("Inference and streaming completed for both cameras.")
 
