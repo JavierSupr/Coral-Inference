@@ -119,7 +119,7 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
             time.sleep(sleep_time)
 
             # Write to CSV after each frame
-            writer.writerow([frame_id, fps, detection_summary])
+            writer.writerow([stream_name, frame_id, fps, detection_summary])
 
         cap.release()
         sock.close()
@@ -132,7 +132,7 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
     # Write headers to CSV file if not already present
     with open(RESULTS_CSV, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Frame ID", "FPS", "Detected Objects"])
+        writer.writerow(["Camera", "Frame ID", "FPS", "Detected Objects"])
 
     thread1 = threading.Thread(target=process_segmentation, args=(
         model_path, cam1_source, sock1, PORT_1, results_sock1, RESULTS_PORT_1, "Camera 1"
@@ -152,5 +152,5 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
     cam1_source = "Camera 1 rev.mp4"
-    cam2_source = "Camera 2.mp4"
+    cam2_source = "Camera 1 rev.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
