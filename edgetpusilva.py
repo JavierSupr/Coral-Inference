@@ -152,5 +152,5 @@ def run_dual_camera_inference(model_path, cam1_source=0, cam2_source=1):
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
     cam1_source = "Camera 1 rev.mp4"
-    cam2_source = "Camera 1 rev.mp4"
+    cam2_source = "Camera 2.mp4"
     run_dual_camera_inference(YOLO_MODEL_PATH, cam1_source, cam2_source)
