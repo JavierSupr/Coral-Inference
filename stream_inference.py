@@ -5,13 +5,17 @@ import socket
 import numpy as np
 import struct
 import csv
+import json
 from ultralytics import YOLO
 
 # UDP configuration
+RESULTS_DEST_IP = "192.168.101.88"  # IP perangkat penerima hasil inferensi
+RESULTS_PORT = 5012                # Port tujuan untuk hasil inferensi
 PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
 
+results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
@@ -76,6 +80,35 @@ def process_stream(model_path):
             print(f"[INFO] Frame ID: - FPS: {fps:.2f}")
             #writer.writerow([fid, f"{fps:.2f}", summary])
             time.sleep(max(0, frame_delay - (time.time() - start_time)))
+            objs_lst = []
+            for out in results:
+                masks = out.masks
+                for i, box in enumerate(out.boxes):
+                    cls = int(box.cls.numpy()[0])
+                    conf = float(box.conf.numpy()[0])
+                    label = out.names[cls]
+                    bbox = box.xyxy.numpy()[0].tolist()
+                    seg = masks.xy[i].tolist() if masks else []
+
+                    obj_data = {
+                        "frame_id": fid,
+                        "label": label,
+                        "class_id": cls,
+                        "conf": conf,
+                        "bbox": bbox,
+                        "seg": seg
+                    }
+                    objs_lst.append(obj_data)
+
+            inference_data = {
+                "frame_id": fid,
+                "timestamp": time.time(),
+                "objects": objs_lst
+            }
+            try:
+                results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
+            except Exception as e:
+                print(f"[ERROR] Failed to send results: {e}")
 
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
