@@ -9,7 +9,7 @@ import json
 from ultralytics import YOLO
 
 # UDP configuration
-RESULTS_DEST_IP = "192.168.101.88"  # IP perangkat penerima hasil inferensi
+RESULTS_DEST_IP = "192.168.137.1"  # IP perangkat penerima hasil inferensi
 RESULTS_PORT = 5012                # Port tujuan untuk hasil inferensi
 PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
