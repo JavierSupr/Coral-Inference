@@ -102,8 +102,8 @@ def process_stream(model_path):
 
             inference_data = {
                 "frame_id": fid,
-                "timestamp": time.time(),
-                "objects": objs_lst
+                "timestamp": time.time()
+                #"objects": objs_lst
             }
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
