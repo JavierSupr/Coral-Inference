@@ -8,7 +8,7 @@ import csv
 from ultralytics import YOLO
 
 # UDP configuration
-UDP_IP = "192.168.101.88"  # IP dari device pengirim (streaming)
+UDP_IP = "192.168.101.82"  # IP dari device pengirim (streaming)
 PORT_1 = 5010
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
