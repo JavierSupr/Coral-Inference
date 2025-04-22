@@ -8,7 +8,6 @@ import csv
 from ultralytics import YOLO
 
 # UDP configuration
-UDP_IP = "192.168.101.82"  # IP dari device pengirim (streaming)
 PORT_1 = 5010
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
@@ -21,6 +20,7 @@ def receive_udp_stream():
     while True:
         try:
             data, _ = sock.recvfrom(4)
+            print(len(data))
             frame_id = struct.unpack("I", data)[0]
             num_chunks, _ = sock.recvfrom(1)
             num_chunks = struct.unpack("B", num_chunks)[0]
