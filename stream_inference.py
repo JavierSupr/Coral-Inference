@@ -84,7 +84,7 @@ def process_segmentation(model_path, input_source, sock, video_port, results_soc
     with open(RESULTS_CSV, mode='a', newline='') as file:
         writer = csv.writer(file)
         
-        while cap.isOpened():
+        while True:
             start_time = time.time()
             frame_id += 1  # Increment frame ID on each loop
             
