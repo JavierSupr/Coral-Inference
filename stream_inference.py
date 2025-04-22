@@ -17,32 +17,30 @@ sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
 def receive_udp_stream():
-    try:
-        # Abaikan frame_id
-        sock.recvfrom(4)
-        
-        # Terima jumlah potongan
-        num_chunks_data, _ = sock.recvfrom(1)
-        num_chunks = struct.unpack("B", num_chunks_data)[0]
+    while True:
+        try:
+            data, _ = sock.recvfrom(4)
+            print(len(data))
+            frame_id = struct.unpack("I", data)[0]
+            num_chunks, _ = sock.recvfrom(1)
+            num_chunks = struct.unpack("B", num_chunks)[0]
 
-        # Terima semua potongan
-        chunks = []
-        for _ in range(num_chunks):
-            chunk, _ = sock.recvfrom(BUFFER_SIZE)
-            chunks.append(chunk)
+            chunks = []
+            for _ in range(num_chunks):
+                chunk, _ = sock.recvfrom(BUFFER_SIZE)
+                chunks.append(chunk)
 
-        # Gabungkan potongan dan decode
-        buffer = b"".join(chunks)
-        npdata = np.frombuffer(buffer, dtype=np.uint8)
-        frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-        return frame
-    except socket.timeout:
-        print(f"[ERROR] timeout")
+            buffer = b"".join(chunks)
+            npdata = np.frombuffer(buffer, dtype=np.uint8)
+            frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
+            return frame, frame_id
+        except socket.timeout:
+            print(f"[ERROR] timeout")
 
-        return None
-    except Exception as e:
-        print(f"[ERROR] Receiving UDP stream: {e}")
-        return None
+            return None, None
+        except Exception as e:
+            print(f"[ERROR] Receiving UDP stream: {e}")
+            return None, None
     
 
 def process_stream(model_path):
@@ -59,7 +57,7 @@ def process_stream(model_path):
         while True:
             start_time = time.time()
             print("3")
-            frame = receive_udp_stream()
+            frame, fid = receive_udp_stream()
             if frame is None:
                 continue
 
