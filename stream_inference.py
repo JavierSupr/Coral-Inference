@@ -8,7 +8,7 @@ import csv
 from ultralytics import YOLO
 
 # UDP configuration
-PORT_1 = 5010
+PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
 
