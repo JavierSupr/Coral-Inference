@@ -59,7 +59,7 @@ def process_stream(model_path):
         while True:
             start_time = time.time()
             print("3")
-            frame, fid = receive_udp_stream()
+            frame = receive_udp_stream()
             if frame is None:
                 continue
 
