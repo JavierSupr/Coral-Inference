@@ -45,20 +45,21 @@ def process_stream(model_path):
     fps_target = 30
     frame_delay = 1.0 / fps_target
     frame_id = 0
-
+    print("1")
     prev_time = time.time()
     with open(RESULTS_CSV, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["Frame ID", "FPS", "Detected Objects"])
-
+        print("2")
         while True:
             start_time = time.time()
+            print("3")
             frame, fid = receive_udp_stream()
             if frame is None:
                 continue
 
             results = model.predict(frame, conf=0.3, iou=0.2, imgsz=256, verbose=False)
-
+            print("4")
             class_count = {}
             for out in results:
                 for box in out.boxes:
