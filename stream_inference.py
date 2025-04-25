@@ -1,6 +1,6 @@
 import cv2
 import time
-import threading
+import sys
 import socket
 import numpy as np
 import struct
@@ -102,8 +102,8 @@ def process_stream(model_path):
 
             inference_data = {
                 "frame_id": fid,
-                "timestamp": time.time()
-                #"objects": objs_lst
+                "timestamp": time.time(),
+                "objects": objs_lst
             }
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
@@ -112,4 +112,12 @@ def process_stream(model_path):
 
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
+    for arg in sys.argv[1:]:
+        if arg.startswith("PORT="):
+            try:
+                RESULTS_PORT = int(arg.split("=")[1])
+                print(f"[INFO] Using custom port: {RESULTS_PORT}")
+            except ValueError:
+                print("[ERROR] Invalid port number.")
+                sys.exit(1)
     process_stream(YOLO_MODEL_PATH)
