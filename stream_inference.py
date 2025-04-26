@@ -25,6 +25,7 @@ def receive_udp_stream():
         try:
             # Terima frame ID (4 byte)
             data, _ = sock.recvfrom(4)
+            print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
             if len(data) != 4:
                 print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
                 continue
@@ -32,6 +33,7 @@ def receive_udp_stream():
 
             # Terima jumlah chunk (1 byte)
             data, _ = sock.recvfrom(1)
+            print(f"[DEBUG] Received num_chunks data length: {len(data)} bytes")
             if len(data) != 1:
                 print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
                 continue
@@ -39,8 +41,9 @@ def receive_udp_stream():
 
             # Terima semua chunks
             chunks = []
-            for _ in range(num_chunks):
+            for i in range(num_chunks):
                 chunk, _ = sock.recvfrom(BUFFER_SIZE)
+                print(f"[DEBUG] Received chunk {i+1}/{num_chunks}, length: {len(chunk)} bytes")
                 chunks.append(chunk)
 
             buffer = b"".join(chunks)
@@ -58,7 +61,7 @@ def receive_udp_stream():
             return None, None
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
-            return None, None    
+            return None, None
 
 def process_stream(model_path):
     model = YOLO(model_path, task="segment")
