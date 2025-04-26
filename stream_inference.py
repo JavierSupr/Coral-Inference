@@ -15,7 +15,7 @@ PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
 UDP_IP = "192.168.137.1"
-video_port = 5010
+video_port = 5019
 
 results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
