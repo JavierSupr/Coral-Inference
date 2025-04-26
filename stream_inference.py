@@ -132,7 +132,7 @@ def process_stream(model_path, video_port):
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
                 
-                video_sock.sendto(struct.pack("I", frame_id), (UDP_IP, video_port))  # Send frame ID
+                video_sock.sendto(struct.pack("I", fid), (UDP_IP, video_port))  # Send frame ID
                 
                 video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
                 for chunk in chunks:
