@@ -23,12 +23,21 @@ sock.settimeout(1.0)
 def receive_udp_stream():
     while True:
         try:
+            # Terima frame ID (4 byte)
             data, _ = sock.recvfrom(4)
-            print(len(data))
+            if len(data) != 4:
+                print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
+                continue
             frame_id = struct.unpack("I", data)[0]
-            num_chunks, _ = sock.recvfrom(1)
-            num_chunks = struct.unpack("B", num_chunks)[0]
 
+            # Terima jumlah chunk (1 byte)
+            data, _ = sock.recvfrom(1)
+            if len(data) != 1:
+                print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
+                continue
+            num_chunks = struct.unpack("B", data)[0]
+
+            # Terima semua chunks
             chunks = []
             for _ in range(num_chunks):
                 chunk, _ = sock.recvfrom(BUFFER_SIZE)
@@ -37,15 +46,19 @@ def receive_udp_stream():
             buffer = b"".join(chunks)
             npdata = np.frombuffer(buffer, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
+
+            if frame is None:
+                print("[WARNING] Failed to decode frame")
+                continue
+
             return frame, frame_id
+
         except socket.timeout:
             print(f"[ERROR] timeout")
-
             return None, None
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
-            return None, None
-    
+            return None, None    
 
 def process_stream(model_path):
     model = YOLO(model_path, task="segment")
