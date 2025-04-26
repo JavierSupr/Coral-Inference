@@ -151,4 +151,4 @@ if __name__ == "__main__":
             except ValueError:
                 print("[ERROR] Invalid port number.")
                 sys.exit(1)
-    process_stream(YOLO_MODEL_PATH)
+    process_stream(YOLO_MODEL_PATH, video_port)
