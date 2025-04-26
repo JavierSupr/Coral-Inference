@@ -14,9 +14,12 @@ RESULTS_PORT = 5012                # Port tujuan untuk hasil inferensi
 PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
+UDP_IP = "192.168.137.1"
+video_port = 5010
 
 results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+video_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
@@ -63,7 +66,7 @@ def receive_udp_stream():
             print(f"[ERROR] Receiving UDP stream: {e}")
             return None, None
 
-def process_stream(model_path):
+def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
     fps_target = 30
     frame_delay = 1.0 / fps_target
@@ -93,7 +96,7 @@ def process_stream(model_path):
             fps = 1 / (time.time() - prev_time)
             prev_time = time.time()
 
-            print(f"[INFO] Frame ID: - FPS: {fps:.2f}")
+            print(f"[INFO] Frame ID: {fid} - FPS: {fps:.2f}")
             #writer.writerow([fid, f"{fps:.2f}", summary])
             time.sleep(max(0, frame_delay - (time.time() - start_time)))
             objs_lst = []
@@ -121,8 +124,20 @@ def process_stream(model_path):
                 "timestamp": time.time(),
                 "objects": objs_lst
             }
+            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+
+            # Split data into chunks
+            chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
+
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
+                
+                video_sock.sendto(struct.pack("I", frame_id), (UDP_IP, video_port))  # Send frame ID
+                
+                video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
+                for chunk in chunks:
+                    video_sock.sendto(chunk, (UDP_IP, video_port))
+
             except Exception as e:
                 print(f"[ERROR] Failed to send results: {e}")
 
