@@ -132,11 +132,11 @@ def process_stream(model_path, video_port):
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
                 
-                video_sock.sendto(struct.pack("I", fid), (UDP_IP, video_port))  # Send frame ID
+                #video_sock.sendto(struct.pack("I", fid), (UDP_IP, video_port))  # Send frame ID
                 
-                video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
-                for chunk in chunks:
-                    video_sock.sendto(chunk, (UDP_IP, video_port))
+                #video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
+                #for chunk in chunks:
+                #    video_sock.sendto(chunk, (UDP_IP, video_port))
 
             except Exception as e:
                 print(f"[ERROR] Failed to send results: {e}")
