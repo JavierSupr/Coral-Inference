@@ -144,11 +144,29 @@ def process_stream(model_path, video_port):
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
     for arg in sys.argv[1:]:
-        if arg.startswith("PORT="):
+        if arg.startswith("RESULTS_PORT="):
             try:
                 RESULTS_PORT = int(arg.split("=")[1])
-                print(f"[INFO] Using custom port: {RESULTS_PORT}")
+                print(f"[INFO] Using custom RESULTS_PORT: {RESULTS_PORT}")
             except ValueError:
-                print("[ERROR] Invalid port number.")
+                print("[ERROR] Invalid RESULTS_PORT number.")
                 sys.exit(1)
+        elif arg.startswith("PORT_1="):
+            try:
+                PORT_1 = int(arg.split("=")[1])
+                print(f"[INFO] Using custom PORT_1: {PORT_1}")
+            except ValueError:
+                print("[ERROR] Invalid PORT_1 number.")
+                sys.exit(1)
+        elif arg.startswith("VIDEO_PORT="):
+            try:
+                video_port = int(arg.split("=")[1])
+                print(f"[INFO] Using custom VIDEO_PORT: {video_port}")
+            except ValueError:
+                print("[ERROR] Invalid VIDEO_PORT number.")
+                sys.exit(1)
+
+    sock.bind(("0.0.0.0", PORT_1))  # <--- HARUS re-bind setelah PORT_1 berubah
+    process_stream(YOLO_MODEL_PATH, video_port)
+
     process_stream(YOLO_MODEL_PATH, video_port)
