@@ -168,5 +168,3 @@ if __name__ == "__main__":
 
     sock.bind(("0.0.0.0", PORT_1))  # <--- HARUS re-bind setelah PORT_1 berubah
     process_stream(YOLO_MODEL_PATH, video_port)
-
-    process_stream(YOLO_MODEL_PATH, video_port)
