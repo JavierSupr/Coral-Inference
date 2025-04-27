@@ -166,5 +166,8 @@ if __name__ == "__main__":
                 print("[ERROR] Invalid VIDEO_PORT number.")
                 sys.exit(1)
 
-    sock.bind(("0.0.0.0", PORT_1))  # <--- HARUS re-bind setelah PORT_1 berubah
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("0.0.0.0", PORT_1))
+    sock.settimeout(1.0)
+
     process_stream(YOLO_MODEL_PATH, video_port)
