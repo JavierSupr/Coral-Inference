@@ -27,24 +27,24 @@ def receive_udp_stream():
     while True:
         try:
             # Terima frame ID (4 byte)
-            data, _ = sock.recvfrom(4)
-            print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
-            if len(data) != 4:
-                print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
-                continue
-            frame_id = struct.unpack("I", data)[0]
-
-            # Terima jumlah chunk (1 byte) - ini sekarang tidak perlu karena data diterima langsung
-            data, _ = sock.recvfrom(1)
-            print(f"[DEBUG] Received num_chunks data length: {len(data)} bytes")
-            if len(data) != 1:
-                print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
-                continue
-            num_chunks = struct.unpack("B", data)[0]
+            #data, _ = sock.recvfrom(4)
+            #print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
+            #if len(data) != 4:
+            #    print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
+            #    continue
+            #frame_id = struct.unpack("I", data)[0]
+#
+            ## Terima jumlah chunk (1 byte) - ini sekarang tidak perlu karena data diterima langsung
+            #data, _ = sock.recvfrom(1)
+            #print(f"[DEBUG] Received num_chunks data length: {len(data)} bytes")
+            #if len(data) != 1:
+            #    print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
+            #    continue
+            #num_chunks = struct.unpack("B", data)[0]
 
             # Terima seluruh data dalam satu paket besar, sesuai jumlah chunk yang diinformasikan
-            total_size = num_chunks * BUFFER_SIZE
-            print(total_size)
+            #total_size = num_chunks * BUFFER_SIZE
+            #print(total_size)
             data, _ = sock.recvfrom(65536)
             print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
 
