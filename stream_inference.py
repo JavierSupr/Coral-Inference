@@ -24,9 +24,6 @@ sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
 def receive_udp_stream():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', 12345))  # Adjust the port number accordingly
-    sock.settimeout(1)  # Optional: Set a timeout to avoid blocking indefinitely
 
     while True:
         try:
