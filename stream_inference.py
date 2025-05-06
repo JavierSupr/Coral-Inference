@@ -29,7 +29,7 @@ def receive_udp_stream():
             data, addr = sock.recvfrom(65536)
             npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-            if frame is None:
+            if data is None:
                 print("[WARNING] Failed to decode frame")
                 continue
 
