@@ -47,7 +47,7 @@ def receive_udp_stream():
             #print(total_size)
             data, _ = sock.recvfrom(65536)
             print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
-
+            frame_id = "3"
             npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
 
