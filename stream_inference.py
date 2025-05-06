@@ -27,12 +27,6 @@ def receive_udp_stream():
 
     while True:
         try:
-            # Terima frame ID (4 byte)
-            data, _ = sock.recvfrom(4)
-            if len(data) != 4:
-                print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
-                continue
-            frame_id = struct.unpack("I", data)[0]
 
             # Terima jumlah chunk (1 byte)
             data, _ = sock.recvfrom(1)
@@ -56,7 +50,7 @@ def receive_udp_stream():
                 print("[WARNING] Failed to decode frame")
                 continue
 
-            return frame, frame_id
+            return frame
 
         except socket.timeout:
             print(f"[ERROR] timeout")
@@ -69,7 +63,7 @@ def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
     fps_target = 30
     frame_delay = 1.0 / fps_target
-    frame_id = 0
+    fid = 0
     print("1")
     prev_time = time.time()
     with open(RESULTS_CSV, mode='w', newline='') as file:
@@ -79,7 +73,7 @@ def process_stream(model_path, video_port):
         while True:
             start_time = time.time()
             print("3")
-            frame, fid = receive_udp_stream()
+            frame = receive_udp_stream()
             if frame is None:
                 continue
 
@@ -127,7 +121,7 @@ def process_stream(model_path, video_port):
 
             # Split data into chunks
             chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
-
+            fid += 1
             try:
                 results_sock.sendto(json.dumps(inference_data).encode(), (RESULTS_DEST_IP, RESULTS_PORT))
                 
