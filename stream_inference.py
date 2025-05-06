@@ -24,28 +24,47 @@ sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
 def receive_udp_stream():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', 12345))  # Adjust the port number accordingly
+    sock.settimeout(1)  # Optional: Set a timeout to avoid blocking indefinitely
+
     while True:
         try:
             # Terima frame ID (4 byte)
-            data, _ = sock.recvfrom(4)  # Terima 4 byte untuk frame_id
-            print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
+            data, _ = sock.recvfrom(4)
             if len(data) != 4:
                 print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
                 continue
-            frame_id = struct.unpack("I", data)[0]  # Menguraikan frame_id
+            frame_id = struct.unpack("I", data)[0]
 
-            # Terima seluruh data frame dalam satu paket besar (misalnya, ukuran 65536 byte)
-            data, _ = sock.recvfrom(65536)
-            print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
-            
-            npdata = np.frombuffer(data, dtype=np.uint8)
+            # Terima jumlah chunk (1 byte)
+            data, _ = sock.recvfrom(1)
+            if len(data) != 1:
+                print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
+                continue
+            num_chunks = struct.unpack("B", data)[0]
+
+            # Terima semua chunks
+            chunks = []
+            for i in range(num_chunks):
+                chunk, _ = sock.recvfrom(BUFFER_SIZE)
+                chunks.append(chunk)
+
+            # Gabungkan semua chunk
+            buffer = b"".join(chunks)
+            npdata = np.frombuffer(buffer, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
 
             if frame is None:
                 print("[WARNING] Failed to decode frame")
                 continue
 
-            # Kembalikan frame dan frame_id
+            # Tampilkan frame (opsional)
+            cv2.imshow(f"Frame {frame_id}", frame)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+
             return frame, frame_id
 
         except socket.timeout:
