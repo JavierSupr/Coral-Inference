@@ -35,15 +35,15 @@ def receive_udp_stream():
             frame_id = struct.unpack("I", data)[0]  # Menguraikan frame_id
 
             # Terima seluruh data frame dalam satu paket besar (misalnya, ukuran 65536 byte)
-            data, _ = sock.recvfrom(65536)
-            print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
-            
-            npdata = np.frombuffer(data, dtype=np.uint8)
-            frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-
-            if frame is None:
-                print("[WARNING] Failed to decode frame")
-                continue
+            #data, _ = sock.recvfrom(65536)
+            #print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
+            #
+            #npdata = np.frombuffer(data, dtype=np.uint8)
+            #frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
+#
+            #if frame is None:
+            #    print("[WARNING] Failed to decode frame")
+            #    continue
 
             # Kembalikan frame dan frame_id
             return frame, frame_id
