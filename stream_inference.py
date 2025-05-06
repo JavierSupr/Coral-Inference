@@ -24,28 +24,11 @@ sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
 def receive_udp_stream():
-
     while True:
         try:
-
-            # Terima jumlah chunk (1 byte)
-            data, _ = sock.recvfrom(1)
-            if len(data) != 1:
-                print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
-                continue
-            num_chunks = struct.unpack("B", data)[0]
-
-            # Terima semua chunks
-            chunks = []
-            for i in range(num_chunks):
-                chunk, _ = sock.recvfrom(BUFFER_SIZE)
-                chunks.append(chunk)
-
-            # Gabungkan semua chunk
-            buffer = b"".join(chunks)
-            npdata = np.frombuffer(buffer, dtype=np.uint8)
+            data, addr = sock.recvfrom(65536)
+            npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-
             if frame is None:
                 print("[WARNING] Failed to decode frame")
                 continue
@@ -54,10 +37,10 @@ def receive_udp_stream():
 
         except socket.timeout:
             print(f"[ERROR] timeout")
-            return None, None
+            return None
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
-            return None, None
+            return None
 
 def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
