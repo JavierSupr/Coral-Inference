@@ -27,27 +27,17 @@ def receive_udp_stream():
     while True:
         try:
             # Terima frame ID (4 byte)
-            #data, _ = sock.recvfrom(4)
-            #print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
-            #if len(data) != 4:
-            #    print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
-            #    continue
-            #frame_id = struct.unpack("I", data)[0]
-#
-            ## Terima jumlah chunk (1 byte) - ini sekarang tidak perlu karena data diterima langsung
-            #data, _ = sock.recvfrom(1)
-            #print(f"[DEBUG] Received num_chunks data length: {len(data)} bytes")
-            #if len(data) != 1:
-            #    print(f"[WARNING] Expected 1 byte for num_chunks, got {len(data)}")
-            #    continue
-            #num_chunks = struct.unpack("B", data)[0]
+            data, _ = sock.recvfrom(4)  # Terima 4 byte untuk frame_id
+            print(f"[DEBUG] Received frame_id data length: {len(data)} bytes")
+            if len(data) != 4:
+                print(f"[WARNING] Expected 4 bytes for frame_id, got {len(data)}")
+                continue
+            frame_id = struct.unpack("I", data)[0]  # Menguraikan frame_id
 
-            # Terima seluruh data dalam satu paket besar, sesuai jumlah chunk yang diinformasikan
-            #total_size = num_chunks * BUFFER_SIZE
-            #print(total_size)
+            # Terima seluruh data frame dalam satu paket besar (misalnya, ukuran 65536 byte)
             data, _ = sock.recvfrom(65536)
             print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
-            frame_id = "3"
+            
             npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
 
@@ -55,6 +45,7 @@ def receive_udp_stream():
                 print("[WARNING] Failed to decode frame")
                 continue
 
+            # Kembalikan frame dan frame_id
             return frame, frame_id
 
         except socket.timeout:
@@ -63,7 +54,6 @@ def receive_udp_stream():
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
             return None, None
-
 
 def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
