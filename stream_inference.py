@@ -34,7 +34,7 @@ def receive_udp_stream():
                 continue
             frame_id = struct.unpack("I", data)[0]
 
-            # Terima jumlah chunk (1 byte)
+            # Terima jumlah chunk (1 byte) - ini sekarang tidak perlu karena data diterima langsung
             data, _ = sock.recvfrom(1)
             print(f"[DEBUG] Received num_chunks data length: {len(data)} bytes")
             if len(data) != 1:
@@ -42,15 +42,12 @@ def receive_udp_stream():
                 continue
             num_chunks = struct.unpack("B", data)[0]
 
-            # Terima semua chunks
-            chunks = []
-            for i in range(num_chunks):
-                chunk, _ = sock.recvfrom(BUFFER_SIZE)
-                print(f"[DEBUG] Received chunk {i+1}/{num_chunks}, length: {len(chunk)} bytes")
-                chunks.append(chunk)
+            # Terima seluruh data dalam satu paket besar, sesuai jumlah chunk yang diinformasikan
+            total_size = num_chunks * BUFFER_SIZE
+            data, _ = sock.recvfrom(total_size)
+            print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
 
-            buffer = b"".join(chunks)
-            npdata = np.frombuffer(buffer, dtype=np.uint8)
+            npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
 
             if frame is None:
@@ -65,6 +62,7 @@ def receive_udp_stream():
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
             return None, None
+
 
 def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
