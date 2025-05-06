@@ -44,7 +44,8 @@ def receive_udp_stream():
 
             # Terima seluruh data dalam satu paket besar, sesuai jumlah chunk yang diinformasikan
             total_size = num_chunks * BUFFER_SIZE
-            data, _ = sock.recvfrom(total_size)
+            print(total_size)
+            data, _ = sock.recvfrom(65536)
             print(f"[DEBUG] Received entire frame data length: {len(data)} bytes")
 
             npdata = np.frombuffer(data, dtype=np.uint8)
