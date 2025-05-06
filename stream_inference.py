@@ -56,12 +56,6 @@ def receive_udp_stream():
                 print("[WARNING] Failed to decode frame")
                 continue
 
-            # Tampilkan frame (opsional)
-            cv2.imshow(f"Frame {frame_id}", frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break
-
             return frame, frame_id
 
         except socket.timeout:
