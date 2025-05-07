@@ -24,15 +24,27 @@ sock.bind(("0.0.0.0", PORT_1))
 sock.settimeout(1.0)
 
 def receive_udp_stream():
+    latest_data = None
     while True:
         try:
             data, addr = sock.recvfrom(65536)
-            npdata = np.frombuffer(data, dtype=np.uint8)
-            frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-            if data is None:
-                print("[WARNING] Failed to decode frame")
-                continue
+            latest_data = data
+            # Lanjutkan membaca sampai buffer kosong
+            sock.setblocking(0)
+            while True:
+                try:
+                    data, addr = sock.recvfrom(65536)
+                    latest_data = data
+                except BlockingIOError:
+                    break
+            sock.setblocking(1)  # Kembalikan blocking mode
 
+            if latest_data is None:
+                print("[WARNING] No data received")
+                return None
+
+            npdata = np.frombuffer(latest_data, dtype=np.uint8)
+            frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
             return frame
 
         except socket.timeout:
@@ -41,6 +53,7 @@ def receive_udp_stream():
         except Exception as e:
             print(f"[ERROR] Receiving UDP stream: {e}")
             return None
+
 
 def process_stream(model_path, video_port):
     model = YOLO(model_path, task="segment")
