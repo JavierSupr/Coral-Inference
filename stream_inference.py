@@ -73,7 +73,7 @@ def process_stream(model_path, video_port):
             if frame is None:
                 continue
             frame_copy = cv2.resize(frame,(256, 256))
-            results = model.predict(frame_copy, conf=0.3, iou=0.2, imgsz=256, verbose=False)
+            results = model.predict(frame_copy, conf=0.3, iou=0.2, imgsz=256, verbose=True)
             print("4")
             class_count = {}
             for out in results:
