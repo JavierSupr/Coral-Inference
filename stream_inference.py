@@ -72,17 +72,7 @@ def process_stream(model_path, video_port):
             frame = receive_udp_stream()
             if frame is None:
                 continue
-            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
-            chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
-
-            try:
-                video_sock.sendto(struct.pack("I", fid), (UDP_IP, video_port))
-                video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
-                for chunk in chunks:
-                    video_sock.sendto(chunk, (UDP_IP, video_port))
-            except Exception as e:
-                print(f"[ERROR] Failed to send video: {e}")
             frame_copy = cv2.resize(frame,(256, 256))
             results = model.predict(frame_copy, conf=0.3, iou=0.2, imgsz=256, verbose=True)
             print("4")
@@ -144,7 +134,19 @@ def process_stream(model_path, video_port):
                 
             except Exception as e:
                 print(f"[ERROR] Failed to send results: {e}")
+            
+            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
+            chunks = [buffer[i:i + BUFFER_SIZE] for i in range(0, len(buffer), BUFFER_SIZE)]
+
+            try:
+                video_sock.sendto(struct.pack("I", fid), (UDP_IP, video_port))
+                video_sock.sendto(struct.pack("B", len(chunks)), (UDP_IP, video_port))
+                for chunk in chunks:
+                    video_sock.sendto(chunk, (UDP_IP, video_port))
+            except Exception as e:
+                print(f"[ERROR] Failed to send video: {e}")
+                
 if __name__ == "__main__":
     YOLO_MODEL_PATH = "best_13-04-2025_full_integer_quant_edgetpu.tflite"
     for arg in sys.argv[1:]:
