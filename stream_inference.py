@@ -72,8 +72,8 @@ def process_stream(model_path, video_port):
             frame = receive_udp_stream()
             if frame is None:
                 continue
-            frame = cv2.resize(frame,(256, 256))
-            results = model.predict(frame, conf=0.3, iou=0.2, imgsz=256, verbose=False)
+            frame_copy = cv2.resize(frame,(256, 256))
+            results = model.predict(frame_copy, conf=0.3, iou=0.2, imgsz=256, verbose=False)
             print("4")
             class_count = {}
             for out in results:
