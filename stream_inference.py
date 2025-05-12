@@ -84,7 +84,8 @@ def process_stream(model_path, video_port):
             #summary = ", ".join([f"{v} {k}" for k, v in class_count.items()])
             fps = 1 / (time.time() - prev_time)
             prev_time = time.time()
-
+            scale_x = 854 / 256
+            scale_y = 480 / 256
             print(f"[INFO] Frame ID: {fid} - FPS: {fps:.2f}")
             #writer.writerow([fid, f"{fps:.2f}", summary])
             time.sleep(max(0, frame_delay - (time.time() - start_time)))
@@ -97,6 +98,19 @@ def process_stream(model_path, video_port):
                     label = out.names[cls]
                     bbox = box.xyxy.numpy()[0].tolist()
                     seg = masks.xy[i].tolist() if masks else []
+
+                    bbox = [
+                        bbox[0] * scale_x,  # x1
+                        bbox[1] * scale_y,  # y1
+                        bbox[2] * scale_x,  # x2
+                        bbox[3] * scale_y   # y2
+                    ]
+            
+                    # Scale segmentation coordinates back to original size
+                    seg = []
+                    if masks:
+                        seg = [[x * scale_x, y * scale_y] for x, y in masks.xy[i]]
+
 
                     obj_data = {
                         "frame_id": fid,
