@@ -99,17 +99,17 @@ def process_stream(model_path, video_port):
                     bbox = box.xyxy.numpy()[0].tolist()
                     seg = masks.xy[i].tolist() if masks else []
 
-                    #bbox = [
-                    #    bbox[0] * scale_x,  # x1
-                    #    bbox[1] * scale_y,  # y1
-                    #    bbox[2] * scale_x,  # x2
-                    #    bbox[3] * scale_y   # y2
-                    #]
-            #
-                    ## Scale segmentation coordinates back to original size
-                    #seg = []
-                    #if masks:
-                    #    seg = [[x * scale_x, y * scale_y] for x, y in masks.xy[i]]
+                    bbox = [
+                        bbox[0] * scale_x,  # x1
+                        bbox[1] * scale_y,  # y1
+                        bbox[2] * scale_x,  # x2
+                        bbox[3] * scale_y   # y2
+                    ]
+            
+                    # Scale segmentation coordinates back to original size
+                    seg = []
+                    if masks:
+                        seg = [[x * scale_x, y * scale_y] for x, y in masks.xy[i]]
 
 
                     obj_data = {
