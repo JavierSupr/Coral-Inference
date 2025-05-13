@@ -82,13 +82,13 @@ def process_stream(model_path, video_port):
                     label = out.names[int(box.cls.numpy()[0])]
                     class_count[label] = class_count.get(label, 0) + 1
 
-            #summary = ", ".join([f"{v} {k}" for k, v in class_count.items()])
+            summary = ", ".join([f"{v} {k}" for k, v in class_count.items()])
             fps = 1 / (time.time() - prev_time)
             prev_time = time.time()
             scale_x = 854 / 256
             scale_y = 480 / 256
             print(f"[INFO] Frame ID: {fid} - FPS: {fps:.2f}")
-            #writer.writerow([fid, f"{fps:.2f}", summary])
+            writer.writerow([fid, f"{fps:.2f}", summary])
             time.sleep(max(0, frame_delay - (time.time() - start_time)))
             objs_lst = []
             for out in results:
