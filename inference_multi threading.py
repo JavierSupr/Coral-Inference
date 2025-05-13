@@ -75,7 +75,7 @@ def process_stream(model_path, udp_input_port, results_ip, results_port, video_i
             summary = ", ".join([f"{v} {k}" for k, v in class_count.items()])
             fps = 1 / (time.time() - prev_time)
             prev_time = time.time()
-
+            print(f"Frame ID: {fid}, FPS: {fps:.2f}")
             writer.writerow([fid, f"{fps:.2f}", summary])
 
             objs_lst = []
