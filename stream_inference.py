@@ -9,12 +9,12 @@ import json
 from ultralytics import YOLO
 
 # UDP configuration
-RESULTS_DEST_IP = "192.168.101.255"  # IP perangkat penerima hasil inferensi
+RESULTS_DEST_IP = "192.168.101.82"  # IP perangkat penerima hasil inferensi
 RESULTS_PORT = 5012                # Port tujuan untuk hasil inferensi
 PORT_1 = 5015
 RESULTS_CSV = "inference_results.csv"
 BUFFER_SIZE = 65000
-UDP_IP = "192.168.137.1"
+UDP_IP = "192.168.101.82"
 video_port = 5019
 
 results_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
